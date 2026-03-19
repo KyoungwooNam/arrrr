@@ -1,24 +1,26 @@
 """
-job_trend_analyzer.py
+job_trend_llm_pipeline.py
 
-채용 공고 데이터를 기반으로 기술 트렌드를 분석하는 스크립트입니다.
-- 채용 리스트 페이지 크롤링
-- 상세 페이지에서 기술 스택 및 요구사항 추출
-- 통계 기반 키워드 추출
-- OpenAI API를 활용한 키워드 설명 생성
-- JSON 파일로 결과 저장
+Wanted API를 사용하여 채용 공고 URL을 자동 수집하고,
+각 URL을 LLM으로 분석하여 기술 키워드를 추출 후 집계하는 스크립트
+
+- URL 자동 수집 (API 기반)
+- 상세 페이지 크롤링
+- URL 단위 LLM 키워드 추출
+- 전체 키워드 집계
+- JSON DB 저장
 
 Author: ChatGPT
 Date: 2026-03-19
 """
 
 import os
-import re
 import json
+import time
 import requests
-from collections import Counter
-from datetime import datetime
 from typing import List, Dict
+from datetime import datetime
+from collections import Counter
 
 from bs4 import BeautifulSoup
 from openai import OpenAI
@@ -35,61 +37,77 @@ BASE_URL = "https://www.wanted.co.kr"
 
 
 # ==============================
-# 1. 채용 공고 리스트 수집
+# 1. 채용 URL 자동 수집 (API)
 # ==============================
-def get_job_links(limit: int = 10) -> List[str]:
+def get_job_urls(total: int = 40, step: int = 20) -> List[str]:
     """
-    채용 리스트 페이지에서 상세 페이지 링크를 수집합니다.
+    Wanted API에서 채용 공고 URL 자동 수집
 
     Args:
-        limit (int): 가져올 공고 수
+        total (int): 총 수집 개수
+        step (int): 한 번에 가져올 개수
 
     Returns:
-        List[str]: 공고 상세 페이지 URL 리스트
+        List[str]: URL 리스트
     """
-    url = "https://www.wanted.co.kr/wdlist/518"
+    all_urls = []
+
+    for offset in range(0, total, step):
+        url = "https://www.wanted.co.kr/api/v4/jobs"
+
+        params = {
+            "country": "kr",
+            "job_sort": "job.latest_order",
+            "limit": step,
+            "offset": offset,
+        }
+
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+        }
+
+        try:
+            res = requests.get(url, params=params, headers=headers, timeout=10)
+            jobs = res.json().get("data", [])
+
+            urls = [
+                f"{BASE_URL}/wd/{job['id']}"
+                for job in jobs if job.get("id")
+            ]
+
+            all_urls.extend(urls)
+
+        except Exception as e:
+            print(f"[ERROR] API 실패: {e}")
+
+        time.sleep(0.5)  # rate limit 대응
+
+    # 중복 제거
+    return list(set(all_urls))
+
+
+# ==============================
+# 2. 상세 페이지 텍스트 추출
+# ==============================
+def fetch_job_text(url: str) -> str:
+    """
+    채용 공고 페이지에서 텍스트 추출
+
+    Args:
+        url (str): 공고 URL
+
+    Returns:
+        str: 텍스트
+    """
     headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, "html.parser")
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
 
-        # TODO: selector는 실제 페이지 구조에 따라 수정 필요
-        links = [
-            BASE_URL + a["href"]
-            for a in soup.select("a.JobCard_link__")[:limit]
-            if a.get("href")
-        ]
-
-        return links
-
-    except Exception as e:
-        print(f"[ERROR] 링크 수집 실패: {e}")
-        return []
-
-
-# ==============================
-# 2. 상세 페이지 크롤링
-# ==============================
-def get_job_detail(url: str) -> str:
-    """
-    채용 상세 페이지에서 텍스트 정보를 추출합니다.
-
-    Args:
-        url (str): 상세 페이지 URL
-
-    Returns:
-        str: 공고 텍스트 (title + description + requirement)
-    """
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # TODO: selector 실제 구조에 맞게 수정 필요
         title = soup.select_one("h1")
-        description = soup.select_one("div.JobDescription_JobDescription__")
+        description = soup.select_one("div")
 
         text = ""
 
@@ -99,124 +117,86 @@ def get_job_detail(url: str) -> str:
         if description:
             text += description.text
 
-        return text
+        return text[:4000]  # 토큰 제한
 
     except Exception as e:
-        print(f"[ERROR] 상세 페이지 실패: {e}")
+        print(f"[ERROR] 크롤링 실패: {url} | {e}")
         return ""
 
 
 # ==============================
-# 3. 텍스트 수집
+# 3. LLM 키워드 추출
 # ==============================
-def collect_job_texts(limit: int = 10) -> str:
+def extract_keywords_llm(text: str) -> List[str]:
     """
-    여러 채용 공고에서 텍스트를 수집하여 하나로 합칩니다.
+    LLM을 사용하여 기술 키워드 추출
 
     Args:
-        limit (int): 수집할 공고 수
-
-    Returns:
-        str: 전체 텍스트
-    """
-    links = get_job_links(limit)
-
-    texts = []
-    for link in links:
-        detail_text = get_job_detail(link)
-
-        if detail_text:
-            texts.append(detail_text)
-
-    return "\n".join(texts)
-
-
-# ==============================
-# 4. 키워드 추출 (통계 기반)
-# ==============================
-def extract_keywords(text: str, top_n: int = 10) -> List[str]:
-    """
-    텍스트에서 기술 키워드를 추출합니다.
-
-    Args:
-        text (str): 입력 텍스트
-        top_n (int): 상위 키워드 개수
+        text (str): 채용 텍스트
 
     Returns:
         List[str]: 키워드 리스트
     """
-    # 단어 추출 (영문 + 특수문자 일부)
-    words = re.findall(r"[A-Za-z+#]+", text)
-
-    # 불용어 제거
-    stopwords = {
-        "the", "and", "for", "with", "you", "are",
-        "this", "that", "from", "have", "will"
-    }
-
-    filtered = [
-        w.lower() for w in words
-        if len(w) > 2 and w.lower() not in stopwords
-    ]
-
-    counter = Counter(filtered)
-
-    # TODO: python vs Python 같은 normalization 추가 가능
-    keywords = [word for word, _ in counter.most_common(top_n)]
-
-    return keywords
-
-
-# ==============================
-# 5. LLM 설명 생성
-# ==============================
-def generate_explanations(keywords: List[str]) -> List[Dict]:
-    """
-    키워드에 대한 설명을 생성합니다.
-
-    Args:
-        keywords (List[str]): 키워드 리스트
-
-    Returns:
-        List[Dict]: 설명 포함 결과
-    """
     prompt = f"""
-다음 기술 키워드 각각에 대해 왜 현재 많이 사용되는지 간단히 설명하세요.
+다음 채용 공고에서 기술 스택/프레임워크/도구만 추출하세요.
 
-키워드:
-{keywords}
+조건:
+- soft skill 제외 (협업, 커뮤니케이션 등)
+- 일반 단어 제외
+- 최대 5개
+- 영어 기준
 
-JSON 형식으로 응답:
-[
-  {{"word": "", "explanation": ""}}
-]
+텍스트:
+{text}
+
+JSON 배열 형식으로 출력:
+["python", "aws", "docker"]
 """
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5.4-nano",
             messages=[{"role": "user", "content": prompt}],
         )
 
         result = json.loads(response.choices[0].message.content)
-        return result
+        return list(set(result))  # 중복 제거
 
     except Exception as e:
         print(f"[ERROR] LLM 실패: {e}")
-
-        # fallback
-        return [{"word": k, "explanation": ""} for k in keywords]
+        return []
 
 
 # ==============================
-# 6. DB 저장
+# 4. 키워드 집계
 # ==============================
-def update_db(data: List[Dict]) -> None:
+def aggregate_keywords(all_keywords: List[List[str]]) -> Dict[str, int]:
     """
-    결과를 JSON DB에 저장합니다.
+    전체 키워드 빈도 집계
 
     Args:
-        data (List[Dict]): 저장할 데이터
+        all_keywords (List[List[str]])
+
+    Returns:
+        Dict[str, int]
+    """
+    counter = Counter()
+
+    for keywords in all_keywords:
+        counter.update([k.lower() for k in keywords])
+
+    return dict(counter.most_common())
+
+
+# ==============================
+# 5. DB 저장
+# ==============================
+def update_db(data: Dict[str, int]) -> None:
+    """
+    JSON 파일에 결과 저장
+
+    Args:
+        data (Dict[str, int])
     """
     if os.path.exists(DB_FILE):
         with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -230,14 +210,12 @@ def update_db(data: List[Dict]) -> None:
     }
 
     db.append(new_entry)
-
-    # 최신 30일 유지
     db = db[-30:]
 
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, ensure_ascii=False)
 
-    print("[INFO] DB 업데이트 완료")
+    print("[INFO] DB 저장 완료")
 
 
 # ==============================
@@ -247,23 +225,40 @@ def main():
     """
     전체 파이프라인 실행
     """
-    print("[INFO] 채용 데이터 수집 시작")
+    print("[INFO] URL 수집 시작")
 
-    text = collect_job_texts(limit=10)
+    urls = get_job_urls(total=40)
 
-    if not text:
-        print("[WARN] 수집된 텍스트 없음")
-        return
+    print(f"[INFO] 수집된 URL 수: {len(urls)}")
 
-    print("[INFO] 키워드 추출")
-    keywords = extract_keywords(text, top_n=5)
+    all_keywords = []
 
-    print(f"[INFO] 키워드: {keywords}")
+    for i, url in enumerate(urls, 1):
+        print(f"[INFO] ({i}/{len(urls)}) 처리 중: {url}")
 
-    print("[INFO] 설명 생성")
-    result = generate_explanations(keywords)
+        text = fetch_job_text(url)
 
-    update_db(result)
+        if not text:
+            continue
+
+        keywords = extract_keywords_llm(text)
+
+        print(f"[INFO] 키워드: {keywords}")
+
+        all_keywords.append(keywords)
+
+        time.sleep(1)  # rate limit
+
+    aggregated = aggregate_keywords(all_keywords)
+
+    print("[INFO] 최종 결과:")
+    print(aggregated)
+
+    update_db(aggregated)
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
