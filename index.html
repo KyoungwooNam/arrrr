@@ -1,18 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>테크 채용 키워드 트렌드 리포트</title>
+  
+  <style>
+    /* 기본 스타일 및 여백 초기화 */
+    :root {
+      --primary: #3b82f6; /* 포인트 컬러 (파란색) */
+      --bg: #f3f4f6;
+      --text: #1f2937;
+      --card-bg: #ffffff;
+    }
+    body {
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* 컨테이너 및 헤더 */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: 800;
+    }
+    header h1 span { color: var(--primary); }
+    header p { color: #6b7280; margin-top: 10px; }
+
+    /* 로딩 애니메이션 */
+    #loading {
+      text-align: center;
+      font-size: 1.2rem;
+      color: var(--primary);
+      margin-top: 50px;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* 날짜별 카드 스타일 */
+    .day-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s;
+    }
+    .day-card:hover { transform: translateY(-3px); }
+    .day-card h3 {
+      margin: 0 0 15px 0;
+      font-size: 1.5rem;
+      border-left: 4px solid var(--primary);
+      padding-left: 10px;
+    }
+
+    /* 키워드 리스트 스타일 */
+    .keyword-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .keyword-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .keyword-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    
+    .word-badge {
+      background-color: #ebf5ff;
+      color: var(--primary);
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-right: 15px;
+      white-space: nowrap; /* 단어 줄바꿈 방지 */
+    }
+    .explanation { flex: 1; color: #4b5563; }
+
+    /* 푸터 */
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
 <body>
-  <h1>테크 채용 키워드 트렌드</h1>
-  <div id="content">로딩 중...</div>
+
+  <div class="container">
+    <header>
+      <h1><span>테크</span> 채용 키워드 트렌드</h1>
+      <p>AI가 분석한 주요 채용 공고 키워드와 설명 (매일 업데이트)</p>
+    </header>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      데이터를 불러오는 중입니다...
+    </div>
+
+    <main id="content" style="display: none;"></main>
+
+    <footer>
+      <p>© 2026 Tech Keyword Tracker. Powered by GitHub Actions & Pages.</p>
+    </footer>
+  </div>
+
   <script>
+    // 1. data.json 파일 가져오기
     fetch('data.json')
-      .then(response => response.json())
+      .then(response => {
+        // 캐시 방지를 위해 강제로 최신 버전을 땡겨오고 싶다면 주소 뒤에 ?v=타임스탬프를 붙일 수 있습니다.
+        // 여기서는 GitHub Pages의 기본 캐시 정책을 따릅니다.
+        if (!response.ok) { throw new Error('데이터를 불러오지 못했습니다.'); }
+        return response.json();
+      })
       .then(data => {
         const container = document.getElementById('content');
-        container.innerHTML = data.map(day => `
-          <h3>${day.date}</h3>
-          <ul>${day.keywords.map(k => `<li><b>${k.word}</b>: ${k.desc}</li>`).join('')}</ul>
-        `).reverse().join(''); // 최신순 정렬
+        const loading = document.getElementById('loading');
+
+        // 2. 데이터가 비어있을 때 처리
+        if (data.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#6b7280;">아직 수집된 데이터가 없습니다.</p>';
+        } else {
+          // 3. 데이터를 HTML로 변환 (최신순 정렬)
+          // data.reverse()는 원본 배열을 바꾸므로, 안전하게 복사본을 만들어 정렬합니다.
+          const sortedData = [...data].reverse(); 
+
+          container.innerHTML = sortedData.map(day => `
+            <div class="day-card">
+              <h3>${day.date}</h3>
+              <ul class="keyword-list">
+                ${day.keywords.map(k => `
+                  <li class="keyword-item">
+                    <span class="word-badge">${k.word}</span>
+                    <span class="explanation">${k.explanation || k.desc || '설명이 없습니다.'}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `).join('');
+        }
+
+        // 4. 로딩 화면 숨기고 컨텐츠 표시
+        loading.style.display = 'none';
+        container.style.display = 'block';
+      })
+      .catch(error => {
+        // 5. 에러 발생 시 처리
+        console.error('Error:', error);
+        document.getElementById('loading').innerHTML = 
+          `<p style="color: #ef4444;">데이터를 불러오는 중 에러가 발생했습니다.<br>${error.message}</p>`;
       });
   </script>
+
 </body>
 </html>
