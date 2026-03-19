@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>테크 채용 키워드 트렌드</h1>
+  <div id="content">로딩 중...</div>
+  <script>
+    fetch('data.json')
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById('content');
+        container.innerHTML = data.map(day => `
+          <h3>${day.date}</h3>
+          <ul>${day.keywords.map(k => `<li><b>${k.word}</b>: ${k.desc}</li>`).join('')}</ul>
+        `).reverse().join(''); // 최신순 정렬
+      });
+  </script>
+</body>
+</html>
