@@ -1,31 +1,40 @@
-name: Daily Tech Keyword Update
+name: Update Job Trend Data
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'data.json' # data.json이 업데이트될 때는 워크플로우를 실행하지 않음 (무한루프 방지)
   schedule:
-    - cron: '0 19 * * *' # 매일 한국시간 새벽 4시
-  workflow_dispatch: # 수동 실행 버튼 생성
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # 파일 쓰기 권한 필수
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
       - name: Install dependencies
-        run: pip install requests # 필요한 라이브러리 설치
+        run: |
+          pip install requests beautifulsoup4 openai
+
       - name: Run script
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-        run: python app.py
+        run: python job_trend_llm_pipeline.py
+
       - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
-          git commit -m "Update job keywords data" || echo "No changes"
-          git push
+          # 변경사항이 있을 때만 커밋
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update job trend data: $(date +'%Y-%m-%d %H:%M:%S')" && git push)
