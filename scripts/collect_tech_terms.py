@@ -288,10 +288,15 @@ def build_extraction_prompt(corpus: str, max_terms: int) -> str:
 각 항목:
 - term: 영문 표기 (약어는 그대로, 예: gRPC)
 - meaning: 한국어로 작성. **IT 지식이 거의 없는 일반인**이 읽고도 이해할 수 있게
-  **3~6문장 정도**로 자세히 설명합니다. 다음을 포함하세요:
+  **4~8문장 정도**로 자세히 설명합니다. 다음을 포함하세요:
   (1) 한 줄로 무엇인지,
   (2) 왜 쓰이거나 어디서 등장하는지(본문 맥락),
-  (3) 익숙한 것에 비유하거나 일상·업무와 연결해 풀어쓰기.
+  (3) 익숙한 것에 비유하거나 일상·업무와 연결해 풀어쓰기,
+  (4) 이 기술·도구를 실무에서 **주로 다루는 직무·역할**(예: 백엔드 개발자, SRE,
+      보안 담당자, 데이터 엔지니어)과, 그 일을 할 때 도움이 되는 **역량·지식
+      방향**(예: 네트워크 기초, SQL, 규제 이해)을 **1~2문장**으로 덧붙입니다.
+      본문에 힌트가 있으면 그에 맞추고, 없으면 통상적인 업계 관행 수준으로만
+      짧게 쓰며 근거 없는 단정은 피합니다.
   전문 용어를 쓸 때는 같은 문장 안에서 풀어서 설명하고, 영어 약어만 던지지 마세요.
 
 반드시 JSON 객체만 출력하세요. 마크다운·코드펜스 금지.
@@ -329,7 +334,8 @@ def extract_terms_with_openai(
         "string fields 'term' (English) and 'meaning' (Korean). "
         "Each meaning must be a clear, layperson-friendly explanation in Korean "
         "(several sentences: what it is, why it matters in context, analogy or "
-        "everyday hook; define any jargon you use). No markdown, no code fences."
+        "everyday hook; briefly which job roles typically use it and what skills "
+        "help; define any jargon you use). No markdown, no code fences."
     )
     user = build_extraction_prompt(corpus, max_terms)
     try:
