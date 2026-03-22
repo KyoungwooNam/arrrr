@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HR Tech</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1419;
+        --fg: #e7ecf1;
+        --muted: #8b98a5;
+        --accent: #1d9bf0;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f7f9fa;
+          --fg: #0f1419;
+          --muted: #536471;
+          --accent: #1d9bf0;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 36rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: clamp(1.75rem, 4vw, 2.25rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.75rem;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      footer {
+        margin-top: 2.5rem;
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>HR Tech</h1>
+      <p>
+        GitHub Pages로 배포된 기본 사이트입니다. <code>docs/index.html</code>을
+        수정해 내용을 바꿀 수 있습니다.
+      </p>
+      <footer>
+        <a href="https://pages.github.com/">GitHub Pages</a>
+      </footer>
+    </main>
+  </body>
+</html>
