@@ -482,21 +482,39 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.35rem;
+        align-items: center;
       }
-      .term-tags span {
+      .term-tags a.term-tags__link {
         font-size: 0.65rem;
         font-family: var(--font-display);
         padding: 0.22rem 0.5rem;
         background: var(--surface);
         border-radius: 999px;
         border: 1px solid var(--border);
-        color: var(--fg-soft);
-        font-weight: 500;
-        transition: border-color 0.15s, color 0.15s;
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-color: rgba(124, 156, 255, 0.35);
+        text-underline-offset: 2px;
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, text-decoration-color 0.15s;
       }
-      .term-tags span:hover {
-        border-color: rgba(124, 156, 255, 0.35);
-        color: var(--fg);
+      @media (prefers-color-scheme: light) {
+        .term-tags a.term-tags__link {
+          color: var(--accent-hot);
+          text-decoration-color: rgba(61, 90, 128, 0.35);
+        }
+      }
+      .term-tags a.term-tags__link:hover {
+        border-color: rgba(124, 156, 255, 0.45);
+        color: var(--accent-hot);
+        text-decoration-color: var(--accent);
+      }
+      .term-tags a.term-tags__link:focus {
+        outline: none;
+      }
+      .term-tags a.term-tags__link:focus-visible {
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
       }
 
       .terms-head {
@@ -842,6 +860,7 @@
         let allTerms = [];
         let cloudResizeTimer = null;
         let lastCloudList = null;
+        let wordcloudResizeObs = null;
         /** 현재 선택한 시작 글자 버킷: "a"~"z" 또는 그 외 "#" */
         let termsLetterKey = "a";
         let termsListRef = [];
@@ -1097,7 +1116,35 @@
           });
         }
 
-        function drawWordCloud(list) {
+        function measureWordcloudBox(wrap) {
+          const r = wrap.getBoundingClientRect();
+          let w = Math.round(r.width);
+          let h = Math.round(r.height);
+          if (w < 64) {
+            w = Math.max(wrap.offsetWidth, wrap.clientWidth, 280);
+          }
+          if (h < 64) {
+            h = Math.max(wrap.offsetHeight, wrap.clientHeight, 220);
+          }
+          return { w: w, h: h };
+        }
+
+        function attachWordcloudResizeObserver() {
+          const wrap = document.getElementById("wordcloud-wrap");
+          if (!wrap || wordcloudResizeObs || typeof ResizeObserver === "undefined") {
+            return;
+          }
+          wordcloudResizeObs = new ResizeObserver(function () {
+            if (!lastCloudList || typeof WordCloud !== "function") return;
+            clearTimeout(cloudResizeTimer);
+            cloudResizeTimer = setTimeout(function () {
+              drawWordCloud(lastCloudList);
+            }, 120);
+          });
+          wordcloudResizeObs.observe(wrap);
+        }
+
+        function drawWordCloud(list, layoutRetry) {
           lastCloudList = list;
           const wrap = document.getElementById("wordcloud-wrap");
           const canvas = document.getElementById("wordcloud-canvas");
@@ -1127,24 +1174,29 @@
             return;
           }
           fallback.classList.remove("is-visible");
+          /* hidden이면 getBoundingClientRect가 0이라 캔버스가 좁게 잡혀 왼쪽에만 그려짐 */
+          panel.hidden = false;
 
-          /* 레이아웃 직후 0이 나오는 경우 대비 */
-          let w = wrap.clientWidth;
-          let h = wrap.clientHeight;
-          if (h < 48) {
-            h = wrap.offsetHeight || 220;
+          const dims = measureWordcloudBox(wrap);
+          let w = dims.w;
+          let h = dims.h;
+          if (w < 40 || h < 40) {
+            if ((layoutRetry || 0) < 6) {
+              requestAnimationFrame(function () {
+                drawWordCloud(list, (layoutRetry || 0) + 1);
+              });
+            }
+            return;
           }
-          if (w < 48) {
-            w = Math.max(wrap.offsetWidth, 240);
-          }
-          if (w < 40 || h < 40) return;
+
+          canvas.style.display = "block";
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          canvas.style.boxSizing = "border-box";
 
           const dpr = Math.min(window.devicePixelRatio || 1, 2);
-          canvas.width = Math.floor(w * dpr);
-          canvas.height = Math.floor(h * dpr);
-          canvas.style.width = w + "px";
-          canvas.style.height = h + "px";
-          /* WordCloud2는 canvas.width/height 버퍼 좌표로 그림 — ctx.scale과 함께 쓰면 격자/클리어가 어긋남 */
+          canvas.width = Math.max(1, Math.floor(w * dpr));
+          canvas.height = Math.max(1, Math.floor(h * dpr));
 
           const bg = getComputedStyle(document.documentElement)
             .getPropertyValue("--bg-elevated")
@@ -1152,26 +1204,28 @@
 
           WordCloud(canvas, {
             list: pairs,
-            gridSize: Math.max(4, Math.round(8 * (w / 1024))),
+            gridSize: Math.max(4, Math.round(6 * (w / 1024))),
             weightFactor: function (size) {
               return (
-                Math.pow(size / maxW, 0.72) * Math.min(18, w / 55) + 10
+                Math.pow(size / maxW, 0.72) * Math.min(22, w / 48) + 10
               );
             },
             fontFamily: "Outfit, system-ui, sans-serif",
             color: function () {
               return hslWordColor();
             },
-            rotateRatio: 0.15,
+            rotateRatio: 0.12,
             rotationSteps: 2,
             backgroundColor: bg || "#12151c",
             minSize: 8,
+            drawOutOfBound: false,
+            shrinkToFit: true,
             click: function (item) {
               if (item && item[0]) scrollToTerm(item[0]);
             },
           });
 
-          panel.hidden = false;
+          attachWordcloudResizeObserver();
         }
 
         function scheduleWordCloud(list) {
@@ -1241,7 +1295,20 @@
               );
               const tags = el("div", { class: "term-tags" });
               (r.extracted_terms || []).forEach((t) => {
-                tags.appendChild(el("span", { text: String(t) }));
+                const label = String(t).trim();
+                if (!label) return;
+                tags.appendChild(
+                  el("a", {
+                    class: "term-tags__link",
+                    href: "#",
+                    title: "목록에서 \"" + label + "\" 열기",
+                    text: label,
+                    onclick: function (ev) {
+                      ev.preventDefault();
+                      scrollToTerm(label);
+                    },
+                  })
+                );
               });
               if (tags.childNodes.length) card.appendChild(tags);
               block.appendChild(card);
