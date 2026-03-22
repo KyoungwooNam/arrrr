@@ -1,14 +1,13 @@
 # 저장소: https://github.com/KyoungwooNam/arrrr
 # Secrets에 OPENAI_API_KEY 등록 필요.
-# 봇이 JSON만 푸시할 때는 paths-ignore로 이 워크플로는 돌지 않게 해 무한 루프를 막고,
-# [skip ci]는 쓰지 않습니다. 그래야 Deploy Pages 워크플로가 같이 돌아 사이트에 JSON이 반영됩니다.
+# 용어 JSON은 docs/data/tech_terms.json 한 경로만 사용합니다.
+# 봇이 그 파일만 바꿔 푸시할 때는 paths-ignore로 수집 워크플로는 다시 돌지 않습니다.
 name: Collect tech terms
 
 on:
   push:
     branches: [main, master]
     paths-ignore:
-      - "data/tech_terms.json"
       - "docs/data/tech_terms.json"
   schedule:
     # 매주 월요일 00:00 UTC
@@ -44,19 +43,14 @@ jobs:
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
         run: python scripts/collect_tech_terms.py
 
-      - name: Sync JSON for GitHub Pages (docs)
-        run: |
-          mkdir -p docs/data
-          cp data/tech_terms.json docs/data/tech_terms.json
-
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/tech_terms.json docs/data/tech_terms.json
+          git add docs/data/tech_terms.json
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "data: update tech_terms.json"
+            git commit -m "data: update docs/data/tech_terms.json"
             git push
           fi

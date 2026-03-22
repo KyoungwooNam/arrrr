@@ -6,6 +6,7 @@
 (2) 용어별 누적 등장 횟수·관측 날짜를 함께 저장합니다.
 
 외부 '용어 사전 API'는 쓰지 않고, 피드 URL로 공개 웹 콘텐츠를 가져옵니다.
+기본 저장 경로는 GitHub Pages용 `docs/data/tech_terms.json` 한 곳입니다.
 실행은 `python scripts/collect_tech_terms.py` 한 줄이며, 동작은 환경 변수·코드
 기본값으로만 제어합니다(GitHub Actions와 로컬 동일).
 """
@@ -90,11 +91,11 @@ def _feed_urls_from_env() -> list[str]:
 
 
 def _output_path() -> Path:
-    """TECH_TERMS_OUTPUT 또는 data/tech_terms.json 경로."""
+    """TECH_TERMS_OUTPUT 또는 docs/data/tech_terms.json 경로."""
     raw = os.environ.get("TECH_TERMS_OUTPUT", "").strip()
     if raw:
         return Path(raw).expanduser().resolve()
-    return (_ROOT / "data" / "tech_terms.json").resolve()
+    return (_ROOT / "docs" / "data" / "tech_terms.json").resolve()
 
 
 def strip_html(text: str) -> str:

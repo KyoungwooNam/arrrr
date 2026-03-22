@@ -4,28 +4,47 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HR Tech — 용어 모음</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
         color-scheme: light dark;
-        --bg: #0c0f12;
-        --surface: #161b22;
-        --fg: #e6edf3;
-        --muted: #8b949e;
-        --border: #30363d;
-        --accent: #58a6ff;
-        --accent-dim: #388bfd66;
-        --ok: #3fb950;
+        --bg: #0a0c10;
+        --bg-elevated: #12151c;
+        --surface: #181c26;
+        --fg: #e8eaef;
+        --fg-soft: #b8bcc8;
+        --muted: #7a8194;
+        --border: #2a3040;
+        --accent: #7c9cff;
+        --accent-hot: #a8bfff;
+        --chart-1: #7c9cff;
+        --chart-2: #5ce1c8;
+        --chart-3: #ffb86b;
+        --danger: #ff6b7a;
+        --radius: 14px;
+        --font-display: "Outfit", system-ui, sans-serif;
+        --font-body: "Source Serif 4", Georgia, serif;
       }
       @media (prefers-color-scheme: light) {
         :root {
-          --bg: #f6f8fa;
+          --bg: #f4f2ed;
+          --bg-elevated: #ebe7df;
           --surface: #ffffff;
-          --fg: #1f2328;
-          --muted: #656d76;
-          --border: #d0d7de;
-          --accent: #0969da;
-          --accent-dim: #0969da22;
-          --ok: #1a7f37;
+          --fg: #1a1d26;
+          --fg-soft: #3d4354;
+          --muted: #6b7285;
+          --border: #d9d4ca;
+          --accent: #3d5a80;
+          --accent-hot: #2c4875;
+          --chart-1: #3d5a80;
+          --chart-2: #2a9d8f;
+          --chart-3: #e76f51;
+          --danger: #c1121f;
         }
       }
       * {
@@ -34,66 +53,85 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+        font-family: var(--font-body);
         background: var(--bg);
         color: var(--fg);
-        line-height: 1.55;
+        line-height: 1.6;
+        background-image: radial-gradient(
+            ellipse 120% 80% at 100% -20%,
+            rgba(124, 156, 255, 0.08),
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse 80% 50% at 0% 100%,
+            rgba(92, 225, 200, 0.06),
+            transparent 45%
+          );
       }
       .wrap {
-        max-width: 52rem;
+        max-width: 44rem;
         margin: 0 auto;
-        padding: 1.5rem 1.25rem 3rem;
+        padding: 1.75rem 1.15rem 3.5rem;
       }
       header {
-        margin-bottom: 1.75rem;
-        padding-bottom: 1.25rem;
-        border-bottom: 1px solid var(--border);
+        margin-bottom: 2rem;
       }
-      h1 {
-        font-size: clamp(1.35rem, 4vw, 1.75rem);
+      .brand {
+        font-family: var(--font-display);
+        font-size: clamp(1.6rem, 5vw, 2.05rem);
         font-weight: 700;
-        letter-spacing: -0.03em;
-        margin: 0 0 0.35rem;
+        letter-spacing: -0.04em;
+        margin: 0 0 0.4rem;
+        line-height: 1.15;
+      }
+      .brand span {
+        color: var(--accent);
       }
       .tagline {
         color: var(--muted);
-        font-size: 0.95rem;
+        font-size: 0.98rem;
         margin: 0;
+        font-family: var(--font-body);
+      }
+      .tz-note {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0.35rem 0 0;
+        opacity: 0.9;
       }
       .meta-bar {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
-        margin-top: 1rem;
-        font-size: 0.8125rem;
-        color: var(--muted);
+        gap: 0.45rem 0.6rem;
+        margin-top: 1.15rem;
       }
       .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.25rem 0.65rem;
+        font-family: var(--font-display);
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 0.35rem 0.75rem;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 999px;
+        color: var(--fg-soft);
       }
-      .pill strong {
+      .pill b {
         color: var(--fg);
         font-weight: 600;
       }
       .toolbar {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 1.25rem;
+        gap: 0.65rem;
+        margin-bottom: 1.75rem;
       }
-      @media (min-width: 540px) {
+      @media (min-width: 520px) {
         .toolbar {
           flex-direction: row;
           align-items: center;
         }
       }
-      label.sr {
+      .sr {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -106,99 +144,170 @@
       #q {
         flex: 1;
         min-width: 0;
-        padding: 0.65rem 0.85rem;
+        padding: 0.85rem 1rem;
         font-size: 1rem;
+        font-family: var(--font-body);
         border: 1px solid var(--border);
-        border-radius: 8px;
+        border-radius: var(--radius);
         background: var(--surface);
         color: var(--fg);
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
       #q:focus {
-        outline: 2px solid var(--accent);
-        outline-offset: 1px;
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(124, 156, 255, 0.2);
       }
       #q::placeholder {
         color: var(--muted);
       }
-      .count {
-        font-size: 0.875rem;
+      .shown-count {
+        font-family: var(--font-display);
+        font-size: 0.8rem;
         color: var(--muted);
         white-space: nowrap;
+        align-self: center;
       }
-      .panel {
+
+      /* 빈도 인포그래픽 */
+      .info-panel {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1rem 1.1rem;
-        margin-bottom: 1.5rem;
+        border-radius: var(--radius);
+        padding: 1.25rem 1.35rem 1.4rem;
+        margin-bottom: 1.75rem;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
       }
-      .panel h2 {
-        font-size: 0.8125rem;
+      .info-panel h2 {
+        font-family: var(--font-display);
+        font-size: 0.7rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.14em;
         color: var(--muted);
-        margin: 0 0 0.65rem;
+        margin: 0 0 1.1rem;
       }
-      .top-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
+      .freq-chart {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem 0.6rem;
+        flex-direction: column;
+        gap: 0.85rem;
       }
-      .top-list li {
-        font-size: 0.8125rem;
-        padding: 0.2rem 0.5rem;
-        background: var(--accent-dim);
+      .freq-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 0.35rem 0.65rem;
+        align-items: center;
+      }
+      .freq-label {
+        grid-column: 1;
+        grid-row: 1;
+        font-family: var(--font-display);
+        font-size: 0.82rem;
+        font-weight: 600;
         color: var(--fg);
-        border-radius: 6px;
+        line-height: 1.25;
+        word-break: break-word;
       }
-      .top-list .n {
-        color: var(--muted);
-        font-variant-numeric: tabular-nums;
-      }
-      details.by-date {
-        margin-bottom: 1.5rem;
+      .freq-track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--bg-elevated);
+        overflow: hidden;
         border: 1px solid var(--border);
-        border-radius: 10px;
+      }
+      .freq-val {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: start;
+      }
+      @media (min-width: 480px) {
+        .freq-row {
+          grid-template-columns: minmax(5rem, 7.5rem) 1fr 2.5rem;
+          grid-template-rows: auto;
+        }
+        .freq-label {
+          grid-column: 1;
+          grid-row: 1;
+        }
+        .freq-track {
+          grid-column: 2;
+          grid-row: 1;
+        }
+        .freq-val {
+          grid-column: 3;
+          grid-row: 1;
+          align-self: center;
+        }
+      }
+      .freq-fill {
+        height: 100%;
+        border-radius: inherit;
+        min-width: 4px;
+        transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        background: linear-gradient(
+          90deg,
+          var(--chart-1),
+          var(--chart-2) 55%,
+          var(--chart-3)
+        );
+        box-shadow: 0 0 16px rgba(124, 156, 255, 0.35);
+      }
+      .freq-val {
+        font-family: var(--font-display);
+        font-size: 0.78rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--accent-hot);
+        text-align: right;
+      }
+
+      details.by-date {
+        margin-bottom: 1.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         background: var(--surface);
         overflow: hidden;
       }
       details.by-date summary {
-        padding: 0.85rem 1rem;
+        padding: 1rem 1.15rem;
         cursor: pointer;
+        font-family: var(--font-display);
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         list-style: none;
+        color: var(--fg-soft);
       }
       details.by-date summary::-webkit-details-marker {
         display: none;
       }
       details.by-date summary::before {
         content: "▸ ";
-        color: var(--muted);
+        color: var(--accent);
+        margin-right: 0.2rem;
       }
       details.by-date[open] summary::before {
         content: "▾ ";
       }
       .day-block {
-        padding: 0 1rem 1rem;
+        padding: 0 1.15rem 1.1rem;
         border-top: 1px solid var(--border);
       }
       .day-block h3 {
-        font-size: 0.8rem;
-        margin: 0.85rem 0 0.35rem;
-        color: var(--muted);
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        margin: 0.9rem 0 0.4rem;
+        color: var(--fg);
       }
       .day-block h3:first-child {
         margin-top: 0.65rem;
       }
       .run-line {
-        font-size: 0.75rem;
+        font-size: 0.78rem;
         color: var(--muted);
-        margin: 0 0 0.35rem;
+        margin: 0 0 0.4rem;
       }
       .term-tags {
         display: flex;
@@ -206,67 +315,164 @@
         gap: 0.35rem;
       }
       .term-tags span {
-        font-size: 0.75rem;
-        padding: 0.15rem 0.45rem;
-        background: var(--bg);
-        border-radius: 4px;
+        font-size: 0.72rem;
+        font-family: var(--font-display);
+        padding: 0.2rem 0.5rem;
+        background: var(--bg-elevated);
+        border-radius: 6px;
         border: 1px solid var(--border);
+        color: var(--fg-soft);
+      }
+
+      /* 용어: 클릭 시에만 설명 */
+      .terms-head {
+        font-family: var(--font-display);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 0.75rem;
       }
       #terms {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.55rem;
       }
-      article.card {
+      details.term-card {
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1.1rem 1.15rem;
+        border-radius: var(--radius);
         background: var(--surface);
+        overflow: hidden;
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
-      article.card h3 {
-        margin: 0 0 0.65rem;
-        font-size: 1.05rem;
-        font-weight: 650;
-        color: var(--accent);
+      details.term-card[open] {
+        border-color: rgba(124, 156, 255, 0.45);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+      }
+      details.term-card summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 1rem 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.02rem;
+        color: var(--accent-hot);
+        user-select: none;
+      }
+      details.term-card summary::-webkit-details-marker {
+        display: none;
+      }
+      .term-summary-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+      .term-name {
         letter-spacing: -0.02em;
       }
-      article.card .meaning {
+      .term-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+      .badge {
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        background: var(--bg-elevated);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      .badge.hot {
+        color: var(--chart-3);
+        border-color: rgba(255, 184, 107, 0.35);
+      }
+      .chev {
+        flex-shrink: 0;
+        width: 1.25rem;
+        height: 1.25rem;
+        color: var(--muted);
+        transition: transform 0.2s ease;
+      }
+      details.term-card[open] .chev {
+        transform: rotate(180deg);
+        color: var(--accent);
+      }
+      .term-body {
+        padding: 0 1.1rem 1.15rem;
+        border-top: 1px solid var(--border);
+        animation: fadeIn 0.22s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .meaning {
         margin: 0;
-        font-size: 0.9375rem;
+        font-size: 0.98rem;
+        color: var(--fg-soft);
         white-space: pre-wrap;
       }
-      article.card .sub {
-        margin-top: 0.65rem;
+      .term-meta {
+        margin-top: 0.75rem;
         font-size: 0.75rem;
         color: var(--muted);
+        font-family: var(--font-display);
+      }
+      .empty-hint {
+        text-align: center;
+        color: var(--muted);
+        padding: 2rem 1rem;
       }
       .state {
         text-align: center;
         padding: 2.5rem 1rem;
         color: var(--muted);
+        font-family: var(--font-body);
       }
       .state.err {
-        color: #f85149;
+        color: var(--danger);
       }
       footer.site {
-        margin-top: 2.5rem;
-        padding-top: 1rem;
+        margin-top: 2.75rem;
+        padding-top: 1.25rem;
         border-top: 1px solid var(--border);
-        font-size: 0.8125rem;
+        font-size: 0.78rem;
         color: var(--muted);
+        font-family: var(--font-display);
       }
       footer.site a {
         color: var(--accent);
+        text-decoration: none;
+      }
+      footer.site a:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
-        <h1>HR Tech 용어 모음</h1>
+        <h1 class="brand"><span>HR Tech</span> 용어 모음</h1>
         <p class="tagline">
-          RSS로 모은 뉴스에서 추출한 테크 용어와 풀이입니다.
+          RSS로 모은 뉴스에서 추출한 테크 용어입니다. 카드를 누르면 풀이가
+          펼쳐집니다.
         </p>
+        <p class="tz-note">날짜·시각은 Asia/Seoul(한국 표준시) 기준입니다.</p>
         <div class="meta-bar" id="meta-bar" hidden></div>
       </header>
 
@@ -282,19 +488,23 @@
             placeholder="용어·설명 검색…"
             autocomplete="off"
           />
-          <span class="count" id="shown-count"></span>
+          <span class="shown-count" id="shown-count"></span>
         </div>
 
-        <div class="panel" id="top-panel" hidden>
-          <h2>자주 잡힌 용어</h2>
-          <ul class="top-list" id="top-list"></ul>
-        </div>
+        <section class="info-panel" id="top-panel" hidden aria-labelledby="freq-title">
+          <h2 id="freq-title">자주 잡힌 용어</h2>
+          <p class="tagline" style="margin: -0.5rem 0 0.75rem; font-size: 0.85rem">
+            등장 횟수에 비례한 막대 길이입니다.
+          </p>
+          <div class="freq-chart" id="freq-chart"></div>
+        </section>
 
         <details class="by-date" id="by-date-wrap" hidden>
           <summary>날짜별 수집 기록</summary>
           <div id="by-date-body"></div>
         </details>
 
+        <h2 class="terms-head">전체 용어</h2>
         <section id="terms" aria-label="용어 목록"></section>
       </div>
 
@@ -302,21 +512,25 @@
         <a href="https://github.com/KyoungwooNam/arrrr">소스 저장소</a>
         ·
         <a href="https://pages.github.com/">GitHub Pages</a>
-        · JSON: <code>data/tech_terms.json</code>
+        · 저장소: <code>docs/data/tech_terms.json</code> (페이지 URL은
+        <code>…/data/tech_terms.json</code>)
       </footer>
     </div>
 
     <script>
       (function () {
         const JSON_URL = "data/tech_terms.json";
+        const TZ_SEOUL = "Asia/Seoul";
         let allTerms = [];
 
-        function el(tag, props, children) {
+        function el(tag, attrs, children) {
           const n = document.createElement(tag);
-          if (props) {
-            Object.entries(props).forEach(([k, v]) => {
+          if (attrs) {
+            Object.entries(attrs).forEach(([k, v]) => {
               if (k === "text") n.textContent = v;
               else if (k === "html") n.innerHTML = v;
+              else if (k.startsWith("on") && typeof v === "function")
+                n.addEventListener(k.slice(2).toLowerCase(), v);
               else n.setAttribute(k, v);
             });
           }
@@ -324,16 +538,38 @@
           return n;
         }
 
-        function formatIso(iso) {
+        /** ISO8601(Z 등) 문자열을 서울 로컬로 표시 */
+        function formatSeoulDateTime(iso) {
           if (!iso || typeof iso !== "string") return "—";
-          return iso.replace("T", " ").replace("Z", " UTC");
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return iso;
+          return new Intl.DateTimeFormat("ko-KR", {
+            timeZone: TZ_SEOUL,
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(d);
+        }
+
+        /** YYYY-MM-DD 키(UTC 자정)를 서울 달력 기준으로 긴 날짜 형식 */
+        function formatSeoulDateKey(dayKey) {
+          if (!dayKey || typeof dayKey !== "string") return "—";
+          const d = new Date(dayKey + "T00:00:00Z");
+          if (Number.isNaN(d.getTime())) return dayKey;
+          return new Intl.DateTimeFormat("ko-KR", {
+            timeZone: TZ_SEOUL,
+            dateStyle: "long",
+            weekday: "short",
+          }).format(d);
         }
 
         function renderMeta(meta) {
           const bar = document.getElementById("meta-bar");
           bar.innerHTML = "";
           const parts = [
-            ["마지막 갱신", formatIso(meta.updated_at || meta.last_fetch_at)],
+            [
+              "마지막 갱신",
+              formatSeoulDateTime(meta.updated_at || meta.last_fetch_at),
+            ],
             ["용어 수", String((allTerms && allTerms.length) || 0)],
             ["모델", meta.model || "—"],
           ];
@@ -342,27 +578,61 @@
           }
           parts.forEach(([k, v]) => {
             const pill = el("span", { class: "pill" });
-            pill.appendChild(el("strong", { text: k + ":" }));
+            const b = document.createElement("b");
+            b.textContent = k + ":";
+            pill.appendChild(b);
             pill.appendChild(document.createTextNode(" " + v));
             bar.appendChild(pill);
           });
           bar.hidden = false;
         }
 
-        function renderTop(meta) {
-          const top = meta.top_terms_by_appearance;
+        /** 상대 막대 길이용 최댓값 */
+        function renderFreqChart(top) {
           if (!Array.isArray(top) || top.length === 0) return;
-          const panel = document.getElementById("top-panel");
-          const ul = document.getElementById("top-list");
-          ul.innerHTML = "";
-          top.slice(0, 24).forEach((row) => {
-            if (!row || !row.term) return;
-            const li = el("li");
-            li.appendChild(document.createTextNode(row.term + " "));
-            li.appendChild(el("span", { class: "n", text: "×" + (row.appearance_count || 1) }));
-            ul.appendChild(li);
+          const slice = top.slice(0, 16).filter((r) => r && r.term);
+          if (!slice.length) return;
+          const max = Math.max(
+            ...slice.map((r) => Number(r.appearance_count) || 1),
+            1
+          );
+          const chart = document.getElementById("freq-chart");
+          chart.innerHTML = "";
+          slice.forEach((row, i) => {
+            const n = Number(row.appearance_count) || 1;
+            const pct = Math.max(8, Math.round((n / max) * 100));
+            const colors = [
+              "var(--chart-1)",
+              "var(--chart-2)",
+              "var(--chart-3)",
+            ];
+            const rowEl = el("div", { class: "freq-row" });
+            rowEl.appendChild(
+              el("span", { class: "freq-label", text: row.term })
+            );
+            const track = el("div", { class: "freq-track" });
+            const fill = el("div", {
+              class: "freq-fill",
+              style:
+                "width:" +
+                pct +
+                "%;background:linear-gradient(90deg," +
+                colors[i % 3] +
+                ",rgba(124,156,255,0.65))",
+            });
+            fill.setAttribute("role", "presentation");
+            track.appendChild(fill);
+            rowEl.appendChild(track);
+            rowEl.appendChild(
+              el("span", {
+                class: "freq-val",
+                text: String(n) + "회",
+                title: "누적 등장",
+              })
+            );
+            chart.appendChild(rowEl);
           });
-          panel.hidden = ul.children.length === 0;
+          document.getElementById("top-panel").hidden = false;
         }
 
         function renderByDate(byDate) {
@@ -375,13 +645,18 @@
           keys.forEach((day) => {
             const entry = byDate[day];
             const block = el("div", { class: "day-block" });
-            block.appendChild(el("h3", { text: day }));
+            block.appendChild(
+              el("h3", { text: formatSeoulDateKey(day) })
+            );
             const runs = entry && entry.runs;
             if (Array.isArray(runs)) {
               runs.forEach((r) => {
                 if (!r) return;
                 block.appendChild(
-                  el("p", { class: "run-line", text: "실행: " + formatIso(r.run_at) })
+                  el("p", {
+                    class: "run-line",
+                    text: "실행: " + formatSeoulDateTime(r.run_at),
+                  })
                 );
                 const tags = el("div", { class: "term-tags" });
                 (r.extracted_terms || []).forEach((t) => {
@@ -395,6 +670,27 @@
           wrap.hidden = false;
         }
 
+        function chevronSvg() {
+          const svg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+          );
+          svg.setAttribute("class", "chev");
+          svg.setAttribute("viewBox", "0 0 24 24");
+          svg.setAttribute("aria-hidden", "true");
+          const p = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          p.setAttribute("fill", "currentColor");
+          p.setAttribute(
+            "d",
+            "M7 10l5 5 5-5H7z"
+          );
+          svg.appendChild(p);
+          return svg;
+        }
+
         function renderTerms(list) {
           const root = document.getElementById("terms");
           root.innerHTML = "";
@@ -403,26 +699,57 @@
 
           if (list.length === 0) {
             root.appendChild(
-              el("p", { class: "state", text: "조건에 맞는 용어가 없습니다." })
+              el("p", {
+                class: "empty-hint",
+                text: "조건에 맞는 용어가 없습니다.",
+              })
             );
             return;
           }
 
           list.forEach((t) => {
-            const art = el("article", { class: "card" });
-            art.appendChild(el("h3", { text: t.term || "" }));
-            art.appendChild(el("p", { class: "meaning", text: t.meaning || "" }));
-            const bits = [];
-            if (t.appearance_count != null && t.appearance_count > 1) {
-              bits.push("등장 " + t.appearance_count + "회");
+            const details = el("details", { class: "term-card" });
+            const summary = el("summary");
+            const left = el("div", { class: "term-summary-left" });
+            left.appendChild(
+              el("span", { class: "term-name", text: t.term || "" })
+            );
+            const badges = el("div", { class: "term-badges" });
+            const ac = Number(t.appearance_count) || 1;
+            if (ac > 1) {
+              badges.appendChild(
+                el("span", { class: "badge hot", text: ac + "회" })
+              );
             }
+            if (badges.childNodes.length) left.appendChild(badges);
+            summary.appendChild(left);
+            summary.appendChild(chevronSvg());
+            details.appendChild(summary);
+
+            const body = el("div", { class: "term-body" });
+            body.appendChild(
+              el("p", { class: "meaning", text: t.meaning || "" })
+            );
+            const metaBits = [];
+            if (ac > 1) metaBits.push("누적 등장 " + ac + "회");
             if (Array.isArray(t.dates_seen) && t.dates_seen.length) {
-              bits.push("관측일: " + t.dates_seen.join(", "));
+              const seoulDates = t.dates_seen.map((d) =>
+                d && d.length >= 10 ? formatSeoulDateKey(d.slice(0, 10)) : d
+              );
+              metaBits.push("관측일: " + seoulDates.join(", "));
             }
-            if (bits.length) {
-              art.appendChild(el("p", { class: "sub", text: bits.join(" · ") }));
+            if (t.updated_at) {
+              metaBits.push(
+                "설명 갱신: " + formatSeoulDateTime(t.updated_at)
+              );
             }
-            root.appendChild(art);
+            if (metaBits.length) {
+              body.appendChild(
+                el("p", { class: "term-meta", text: metaBits.join(" · ") })
+              );
+            }
+            details.appendChild(body);
+            root.appendChild(details);
           });
         }
 
@@ -440,7 +767,6 @@
           renderTerms(filterTerms(e.target.value));
         });
 
-        // 배포 직후·CDN 캐시로 옛 응답이 남는 경우를 줄이기 위해 재검증 요청
         fetch(JSON_URL, { cache: "no-cache" })
           .then((r) => {
             if (!r.ok) throw new Error("HTTP " + r.status + " — " + JSON_URL);
@@ -451,7 +777,27 @@
             allTerms = Array.isArray(data.terms) ? data.terms : [];
             const meta = data.meta || {};
             renderMeta(meta);
-            renderTop(meta);
+            if (
+              Array.isArray(meta.top_terms_by_appearance) &&
+              meta.top_terms_by_appearance.length
+            ) {
+              renderFreqChart(meta.top_terms_by_appearance);
+            } else {
+              const fromTerms = [...allTerms]
+                .map((t) => ({
+                  term: t.term,
+                  appearance_count: Number(t.appearance_count) || 1,
+                }))
+                .sort(
+                  (a, b) =>
+                    b.appearance_count - a.appearance_count ||
+                    (a.term || "").localeCompare(b.term || "")
+                )
+                .slice(0, 16);
+              if (fromTerms.some((x) => x.appearance_count > 1)) {
+                renderFreqChart(fromTerms);
+              }
+            }
             renderByDate(data.by_date);
             renderTerms(allTerms);
             document.getElementById("app").hidden = false;
@@ -463,7 +809,7 @@
             er.textContent =
               "JSON을 불러오지 못했습니다. " +
               (err && err.message ? err.message : String(err)) +
-              " 로컬에서 보려면 docs 폴더에 data/tech_terms.json을 두세요.";
+              " 로컬에서는 docs/data/tech_terms.json 경로를 확인하세요.";
           });
       })();
     </script>

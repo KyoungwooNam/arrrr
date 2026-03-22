@@ -1,5 +1,5 @@
 # 저장소: https://github.com/KyoungwooNam/arrrr
-# GitHub Pages: docs/ 폴더를 정적 사이트로 배포합니다.
+# GitHub Pages: docs/ 폴더를 정적 사이트 루트로 배포합니다.
 # 저장소 Settings → Pages → Build and deployment → Source: GitHub Actions 선택 후
 # 첫 푸시 시 제안되는 "Configure"로 이 워크플로를 연결할 수 있습니다.
 name: Deploy GitHub Pages
@@ -31,13 +31,11 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 사이트에서 fetch할 수 있도록 저장소 루트의 JSON을 docs 쪽으로 복사합니다.
-      - name: Copy tech terms JSON into docs
+      # 수집 스크립트가 docs/data/tech_terms.json 에만 씁니다. 없으면 빈 JSON으로 자리만 둡니다.
+      - name: Ensure docs/data/tech_terms.json exists
         run: |
           mkdir -p docs/data
-          if [ -f data/tech_terms.json ]; then
-            cp data/tech_terms.json docs/data/tech_terms.json
-          else
+          if [ ! -f docs/data/tech_terms.json ]; then
             echo '{"meta":{"updated_at":null},"terms":[],"by_date":{}}' > docs/data/tech_terms.json
           fi
 
