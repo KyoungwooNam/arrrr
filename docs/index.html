@@ -538,28 +538,41 @@
           return n;
         }
 
-        /** ISO8601(Z 등) 문자열을 서울 로컬로 표시 */
+        /** ISO8601(Z 등) 문자열을 서울 로컬로 표시 (dateStyle·weekday 혼용 금지 → 필드만 지정) */
         function formatSeoulDateTime(iso) {
           if (!iso || typeof iso !== "string") return "—";
           const d = new Date(iso);
           if (Number.isNaN(d.getTime())) return iso;
-          return new Intl.DateTimeFormat("ko-KR", {
-            timeZone: TZ_SEOUL,
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(d);
+          try {
+            return new Intl.DateTimeFormat("ko-KR", {
+              timeZone: TZ_SEOUL,
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }).format(d);
+          } catch (e) {
+            return d.toLocaleString("ko-KR");
+          }
         }
 
-        /** YYYY-MM-DD 키(UTC 자정)를 서울 달력 기준으로 긴 날짜 형식 */
+        /** YYYY-MM-DD 키(UTC 자정)를 서울 타임존으로 요일·날짜 표시 */
         function formatSeoulDateKey(dayKey) {
           if (!dayKey || typeof dayKey !== "string") return "—";
           const d = new Date(dayKey + "T00:00:00Z");
           if (Number.isNaN(d.getTime())) return dayKey;
-          return new Intl.DateTimeFormat("ko-KR", {
-            timeZone: TZ_SEOUL,
-            dateStyle: "long",
-            weekday: "short",
-          }).format(d);
+          try {
+            return new Intl.DateTimeFormat("ko-KR", {
+              timeZone: TZ_SEOUL,
+              weekday: "short",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }).format(d);
+          } catch (e) {
+            return dayKey;
+          }
         }
 
         function renderMeta(meta) {
