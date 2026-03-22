@@ -3,21 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HR Tech</title>
+    <title>HR Tech — 용어 모음</title>
     <style>
       :root {
         color-scheme: light dark;
-        --bg: #0f1419;
-        --fg: #e7ecf1;
-        --muted: #8b98a5;
-        --accent: #1d9bf0;
+        --bg: #0c0f12;
+        --surface: #161b22;
+        --fg: #e6edf3;
+        --muted: #8b949e;
+        --border: #30363d;
+        --accent: #58a6ff;
+        --accent-dim: #388bfd66;
+        --ok: #3fb950;
       }
       @media (prefers-color-scheme: light) {
         :root {
-          --bg: #f7f9fa;
-          --fg: #0f1419;
-          --muted: #536471;
-          --accent: #1d9bf0;
+          --bg: #f6f8fa;
+          --surface: #ffffff;
+          --fg: #1f2328;
+          --muted: #656d76;
+          --border: #d0d7de;
+          --accent: #0969da;
+          --accent-dim: #0969da22;
+          --ok: #1a7f37;
         }
       }
       * {
@@ -26,55 +34,437 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
         background: var(--bg);
         color: var(--fg);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        line-height: 1.6;
+        line-height: 1.55;
       }
-      main {
-        max-width: 36rem;
-        text-align: center;
+      .wrap {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 3rem;
+      }
+      header {
+        margin-bottom: 1.75rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--border);
       }
       h1 {
-        font-size: clamp(1.75rem, 4vw, 2.25rem);
+        font-size: clamp(1.35rem, 4vw, 1.75rem);
         font-weight: 700;
-        letter-spacing: -0.02em;
-        margin: 0 0 0.75rem;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.35rem;
       }
-      p {
-        margin: 0;
+      .tagline {
         color: var(--muted);
-        font-size: 1.05rem;
+        font-size: 0.95rem;
+        margin: 0;
       }
-      a {
-        color: var(--accent);
-        text-decoration: none;
+      .meta-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.75rem;
+        margin-top: 1rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
       }
-      a:hover {
-        text-decoration: underline;
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
       }
-      footer {
-        margin-top: 2.5rem;
+      .pill strong {
+        color: var(--fg);
+        font-weight: 600;
+      }
+      .toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      @media (min-width: 540px) {
+        .toolbar {
+          flex-direction: row;
+          align-items: center;
+        }
+      }
+      label.sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+      #q {
+        flex: 1;
+        min-width: 0;
+        padding: 0.65rem 0.85rem;
+        font-size: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--fg);
+      }
+      #q:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      #q::placeholder {
+        color: var(--muted);
+      }
+      .count {
         font-size: 0.875rem;
         color: var(--muted);
+        white-space: nowrap;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1.5rem;
+      }
+      .panel h2 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 0.65rem;
+      }
+      .top-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+      }
+      .top-list li {
+        font-size: 0.8125rem;
+        padding: 0.2rem 0.5rem;
+        background: var(--accent-dim);
+        color: var(--fg);
+        border-radius: 6px;
+      }
+      .top-list .n {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      details.by-date {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      details.by-date summary {
+        padding: 0.85rem 1rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        list-style: none;
+      }
+      details.by-date summary::-webkit-details-marker {
+        display: none;
+      }
+      details.by-date summary::before {
+        content: "▸ ";
+        color: var(--muted);
+      }
+      details.by-date[open] summary::before {
+        content: "▾ ";
+      }
+      .day-block {
+        padding: 0 1rem 1rem;
+        border-top: 1px solid var(--border);
+      }
+      .day-block h3 {
+        font-size: 0.8rem;
+        margin: 0.85rem 0 0.35rem;
+        color: var(--muted);
+      }
+      .day-block h3:first-child {
+        margin-top: 0.65rem;
+      }
+      .run-line {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin: 0 0 0.35rem;
+      }
+      .term-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .term-tags span {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.45rem;
+        background: var(--bg);
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      #terms {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      article.card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.1rem 1.15rem;
+        background: var(--surface);
+      }
+      article.card h3 {
+        margin: 0 0 0.65rem;
+        font-size: 1.05rem;
+        font-weight: 650;
+        color: var(--accent);
+        letter-spacing: -0.02em;
+      }
+      article.card .meaning {
+        margin: 0;
+        font-size: 0.9375rem;
+        white-space: pre-wrap;
+      }
+      article.card .sub {
+        margin-top: 0.65rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--muted);
+      }
+      .state.err {
+        color: #f85149;
+      }
+      footer.site {
+        margin-top: 2.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      footer.site a {
+        color: var(--accent);
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>HR Tech</h1>
-      <p>
-        GitHub Pages로 배포된 기본 사이트입니다. <code>docs/index.html</code>을
-        수정해 내용을 바꿀 수 있습니다.
-      </p>
-      <footer>
+    <div class="wrap">
+      <header>
+        <h1>HR Tech 용어 모음</h1>
+        <p class="tagline">
+          RSS로 모은 뉴스에서 추출한 테크 용어와 풀이입니다.
+        </p>
+        <div class="meta-bar" id="meta-bar" hidden></div>
+      </header>
+
+      <div id="loading" class="state">데이터를 불러오는 중…</div>
+      <div id="error" class="state err" hidden></div>
+
+      <div id="app" hidden>
+        <div class="toolbar">
+          <label class="sr" for="q">검색</label>
+          <input
+            type="search"
+            id="q"
+            placeholder="용어·설명 검색…"
+            autocomplete="off"
+          />
+          <span class="count" id="shown-count"></span>
+        </div>
+
+        <div class="panel" id="top-panel" hidden>
+          <h2>자주 잡힌 용어</h2>
+          <ul class="top-list" id="top-list"></ul>
+        </div>
+
+        <details class="by-date" id="by-date-wrap" hidden>
+          <summary>날짜별 수집 기록</summary>
+          <div id="by-date-body"></div>
+        </details>
+
+        <section id="terms" aria-label="용어 목록"></section>
+      </div>
+
+      <footer class="site">
+        <a href="https://github.com/KyoungwooNam/arrrr">소스 저장소</a>
+        ·
         <a href="https://pages.github.com/">GitHub Pages</a>
+        · JSON: <code>data/tech_terms.json</code>
       </footer>
-    </main>
+    </div>
+
+    <script>
+      (function () {
+        const JSON_URL = "data/tech_terms.json";
+        let allTerms = [];
+
+        function el(tag, props, children) {
+          const n = document.createElement(tag);
+          if (props) {
+            Object.entries(props).forEach(([k, v]) => {
+              if (k === "text") n.textContent = v;
+              else if (k === "html") n.innerHTML = v;
+              else n.setAttribute(k, v);
+            });
+          }
+          (children || []).forEach((c) => n.appendChild(c));
+          return n;
+        }
+
+        function formatIso(iso) {
+          if (!iso || typeof iso !== "string") return "—";
+          return iso.replace("T", " ").replace("Z", " UTC");
+        }
+
+        function renderMeta(meta) {
+          const bar = document.getElementById("meta-bar");
+          bar.innerHTML = "";
+          const parts = [
+            ["마지막 갱신", formatIso(meta.updated_at || meta.last_fetch_at)],
+            ["용어 수", String((allTerms && allTerms.length) || 0)],
+            ["모델", meta.model || "—"],
+          ];
+          if (meta.corpus_chars != null) {
+            parts.push(["코퍼스 글자 수", String(meta.corpus_chars)]);
+          }
+          parts.forEach(([k, v]) => {
+            const pill = el("span", { class: "pill" });
+            pill.appendChild(el("strong", { text: k + ":" }));
+            pill.appendChild(document.createTextNode(" " + v));
+            bar.appendChild(pill);
+          });
+          bar.hidden = false;
+        }
+
+        function renderTop(meta) {
+          const top = meta.top_terms_by_appearance;
+          if (!Array.isArray(top) || top.length === 0) return;
+          const panel = document.getElementById("top-panel");
+          const ul = document.getElementById("top-list");
+          ul.innerHTML = "";
+          top.slice(0, 24).forEach((row) => {
+            if (!row || !row.term) return;
+            const li = el("li");
+            li.appendChild(document.createTextNode(row.term + " "));
+            li.appendChild(el("span", { class: "n", text: "×" + (row.appearance_count || 1) }));
+            ul.appendChild(li);
+          });
+          panel.hidden = ul.children.length === 0;
+        }
+
+        function renderByDate(byDate) {
+          if (!byDate || typeof byDate !== "object") return;
+          const keys = Object.keys(byDate).sort().reverse();
+          if (keys.length === 0) return;
+          const wrap = document.getElementById("by-date-wrap");
+          const body = document.getElementById("by-date-body");
+          body.innerHTML = "";
+          keys.forEach((day) => {
+            const entry = byDate[day];
+            const block = el("div", { class: "day-block" });
+            block.appendChild(el("h3", { text: day }));
+            const runs = entry && entry.runs;
+            if (Array.isArray(runs)) {
+              runs.forEach((r) => {
+                if (!r) return;
+                block.appendChild(
+                  el("p", { class: "run-line", text: "실행: " + formatIso(r.run_at) })
+                );
+                const tags = el("div", { class: "term-tags" });
+                (r.extracted_terms || []).forEach((t) => {
+                  tags.appendChild(el("span", { text: String(t) }));
+                });
+                block.appendChild(tags);
+              });
+            }
+            body.appendChild(block);
+          });
+          wrap.hidden = false;
+        }
+
+        function renderTerms(list) {
+          const root = document.getElementById("terms");
+          root.innerHTML = "";
+          document.getElementById("shown-count").textContent =
+            list.length + "개 표시";
+
+          if (list.length === 0) {
+            root.appendChild(
+              el("p", { class: "state", text: "조건에 맞는 용어가 없습니다." })
+            );
+            return;
+          }
+
+          list.forEach((t) => {
+            const art = el("article", { class: "card" });
+            art.appendChild(el("h3", { text: t.term || "" }));
+            art.appendChild(el("p", { class: "meaning", text: t.meaning || "" }));
+            const bits = [];
+            if (t.appearance_count != null && t.appearance_count > 1) {
+              bits.push("등장 " + t.appearance_count + "회");
+            }
+            if (Array.isArray(t.dates_seen) && t.dates_seen.length) {
+              bits.push("관측일: " + t.dates_seen.join(", "));
+            }
+            if (bits.length) {
+              art.appendChild(el("p", { class: "sub", text: bits.join(" · ") }));
+            }
+            root.appendChild(art);
+          });
+        }
+
+        function filterTerms(q) {
+          const s = (q || "").trim().toLowerCase();
+          if (!s) return allTerms.slice();
+          return allTerms.filter((t) => {
+            const term = (t.term || "").toLowerCase();
+            const mean = (t.meaning || "").toLowerCase();
+            return term.includes(s) || mean.includes(s);
+          });
+        }
+
+        document.getElementById("q").addEventListener("input", (e) => {
+          renderTerms(filterTerms(e.target.value));
+        });
+
+        fetch(JSON_URL)
+          .then((r) => {
+            if (!r.ok) throw new Error("HTTP " + r.status + " — " + JSON_URL);
+            return r.json();
+          })
+          .then((data) => {
+            document.getElementById("loading").hidden = true;
+            allTerms = Array.isArray(data.terms) ? data.terms : [];
+            const meta = data.meta || {};
+            renderMeta(meta);
+            renderTop(meta);
+            renderByDate(data.by_date);
+            renderTerms(allTerms);
+            document.getElementById("app").hidden = false;
+          })
+          .catch((err) => {
+            document.getElementById("loading").hidden = true;
+            const er = document.getElementById("error");
+            er.hidden = false;
+            er.textContent =
+              "JSON을 불러오지 못했습니다. " +
+              (err && err.message ? err.message : String(err)) +
+              " 로컬에서 보려면 docs 폴더에 data/tech_terms.json을 두세요.";
+          });
+      })();
+    </script>
   </body>
 </html>

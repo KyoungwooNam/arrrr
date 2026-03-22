@@ -1,11 +1,18 @@
-# 주기적으로 테크 용어 JSON을 갱신합니다. 저장소 Secrets에 OPENAI_API_KEY를 등록하세요.
+# 저장소: https://github.com/KyoungwooNam/arrrr
+# Secrets에 OPENAI_API_KEY 등록 필요. 봇 커밋은 [skip ci]로 재실행 방지.
 name: Collect tech terms
 
 on:
+  push:
+    branches: [main, master]
   schedule:
     # 매주 월요일 00:00 UTC
     - cron: "0 0 * * 1"
   workflow_dispatch:
+
+concurrency:
+  group: collect-tech-terms
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -32,11 +39,16 @@ jobs:
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
         run: python scripts/collect_tech_terms.py
 
+      - name: Sync JSON for GitHub Pages (docs)
+        run: |
+          mkdir -p docs/data
+          cp data/tech_terms.json docs/data/tech_terms.json
+
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/tech_terms.json
+          git add data/tech_terms.json docs/data/tech_terms.json
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else

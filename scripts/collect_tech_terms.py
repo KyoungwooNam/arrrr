@@ -2,6 +2,9 @@
 # Copyright 2025
 """테크 관련 RSS 피드를 웹에서 수집한 뒤 OpenAI로 용어·의미를 추출해 JSON에 병합합니다.
 
+주기 실행을 고려해 (1) 일자별 실행 기록·당일 추출 용어 목록,
+(2) 용어별 누적 등장 횟수·관측 날짜를 함께 저장합니다.
+
 외부 '용어 사전 API'는 쓰지 않고, 피드 URL로 공개 웹 콘텐츠를 가져옵니다.
 실행은 `python scripts/collect_tech_terms.py` 한 줄이며, 동작은 환경 변수·코드
 기본값으로만 제어합니다(GitHub Actions와 로컬 동일).
@@ -35,6 +38,13 @@ _DEFAULT_FEED_URLS: tuple[str, ...] = (
     "https://hnrss.org/frontpage",
     "https://lobste.rs/rss",
     "https://dev.to/feed",
+    "https://github.blog/feed/",
+    "https://kubernetes.io/feed.xml",
+    "https://blog.rust-lang.org/feed.xml",
+    "https://techcrunch.com/feed/",
+    "https://www.theverge.com/rss/index.xml",
+    "https://www.phoronix.com/rss.php",
+    "https://rss.slashdot.org/Slashdot/slashdotMain",
 )
 
 # 일부 피드(dev.to 등)가 비브라우저 UA를 403으로 막아, 일반 브라우저 문자열을 사용합니다.
@@ -47,6 +57,11 @@ _USER_AGENT = (
 def _utc_now_iso() -> str:
     """현재 시각을 UTC ISO8601 문자열로 반환합니다."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _utc_date_str() -> str:
+    """현재 날짜를 UTC 기준 YYYY-MM-DD로 반환합니다."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 def normalize_term_key(term: str) -> str:
@@ -203,20 +218,50 @@ def collect_corpus_from_feeds(
     return corpus, ok_urls, errors
 
 
+def migrate_terms_row(row: dict[str, Any], fallback_date: str | None) -> dict[str, Any]:
+    """구 스키마 행에 appearance_count·dates_seen을 채웁니다."""
+    r = dict(row)
+    if "appearance_count" not in r:
+        r["appearance_count"] = 1
+    ds = r.get("dates_seen")
+    if not isinstance(ds, list) or not ds:
+        added = r.get("added_at")
+        if isinstance(added, str) and len(added) >= 10:
+            r["dates_seen"] = [added[:10]]
+        elif fallback_date:
+            r["dates_seen"] = [fallback_date]
+        else:
+            r["dates_seen"] = []
+    return r
+
+
 def load_json(path: Path) -> dict[str, Any]:
     """기존 JSON 파일을 읽습니다. 없거나 비어 있으면 빈 구조를 반환합니다."""
+    empty: dict[str, Any] = {
+        "meta": {"schema_version": 2, "version": 1, "updated_at": None},
+        "terms": [],
+        "by_date": {},
+    }
     if not path.is_file():
-        return {"meta": {"version": 1, "updated_at": None}, "terms": []}
+        return empty
     try:
         with path.open(encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError:
         logger.warning("JSON 손상으로 새 파일로 시작합니다: %s", path)
-        return {"meta": {"version": 1, "updated_at": None}, "terms": []}
+        return empty
     if "terms" not in data:
         data["terms"] = []
     if "meta" not in data:
         data["meta"] = {"version": 1, "updated_at": None}
+    data["meta"].setdefault("schema_version", 2)
+    data.setdefault("by_date", {})
+    # 구 데이터 terms 마이그레이션
+    fb = None
+    lu = data["meta"].get("last_fetch_at") or data["meta"].get("updated_at")
+    if isinstance(lu, str) and len(lu) >= 10:
+        fb = lu[:10]
+    data["terms"] = [migrate_terms_row(t, fb) for t in data["terms"] if isinstance(t, dict)]
     return data
 
 
@@ -241,7 +286,12 @@ def build_extraction_prompt(corpus: str, max_terms: int) -> str:
 
 각 항목:
 - term: 영문 표기 (약어는 그대로, 예: gRPC)
-- meaning: 한국어로 한 문단 이내 정의·맥락 설명
+- meaning: 한국어로 작성. **IT 지식이 거의 없는 일반인**이 읽고도 이해할 수 있게
+  **3~6문장 정도**로 자세히 설명합니다. 다음을 포함하세요:
+  (1) 한 줄로 무엇인지,
+  (2) 왜 쓰이거나 어디서 등장하는지(본문 맥락),
+  (3) 익숙한 것에 비유하거나 일상·업무와 연결해 풀어쓰기.
+  전문 용어를 쓸 때는 같은 문장 안에서 풀어서 설명하고, 영어 약어만 던지지 마세요.
 
 반드시 JSON 객체만 출력하세요. 마크다운·코드펜스 금지.
 {{"terms":[{{"term":"...","meaning":"..."}}]}}
@@ -273,9 +323,12 @@ def extract_terms_with_openai(
         RuntimeError: API 오류.
     """
     system = (
-        "You extract technical glossary entries from provided text. "
-        "Output only a JSON object with key 'terms': array of "
-        "{{\"term\": string, \"meaning\": string}}. Korean meanings. No markdown."
+        "You extract technical glossary entries from the user's text. "
+        "Output only a JSON object with key 'terms': array of objects with "
+        "string fields 'term' (English) and 'meaning' (Korean). "
+        "Each meaning must be a clear, layperson-friendly explanation in Korean "
+        "(several sentences: what it is, why it matters in context, analogy or "
+        "everyday hook; define any jargon you use). No markdown, no code fences."
     )
     user = build_extraction_prompt(corpus, max_terms)
     try:
@@ -316,28 +369,120 @@ def extract_terms_with_openai(
     return out
 
 
+def _merge_dates_seen(prev_dates: Any, day: str) -> list[str]:
+    """dates_seen에 날짜 day를 넣고 정렬·중복 제거합니다."""
+    base: list[str] = []
+    if isinstance(prev_dates, list):
+        base = [str(d) for d in prev_dates if isinstance(d, str) and len(d) >= 10]
+    return sorted(set(base + [day]))
+
+
+def dedupe_new_batch(new_items: list[dict[str, str]]) -> list[dict[str, str]]:
+    """한 실행 안에서 같은 용어가 여러 번 나오면 마지막 의미만 남깁니다."""
+    by_key: dict[str, dict[str, str]] = {}
+    order: list[str] = []
+    for row in new_items:
+        key = normalize_term_key(row["term"])
+        if key not in by_key:
+            order.append(key)
+        by_key[key] = {"term": row["term"], "meaning": row["meaning"]}
+    return [by_key[k] for k in order]
+
+
 def merge_terms(
     existing: list[dict[str, Any]],
     new_items: list[dict[str, str]],
+    run_day: str,
+    now_iso: str,
 ) -> list[dict[str, Any]]:
-    """기존 terms와 신규 항목을 term 기준으로 병합(같은 키는 새 meaning으로 덮어씀)."""
+    """기존 terms와 신규 항목을 병합하고 누적 등장 횟수·관측 날짜를 갱신합니다.
+
+    이번 실행에서 같은 용어가 배치 안에 중복되면 등장은 1회로만 칩니다.
+
+    Args:
+        existing: 기존 용어 행 목록.
+        new_items: 이번 실행에서 모델이 반환한 용어.
+        run_day: UTC 기준 YYYY-MM-DD.
+        now_iso: 갱신 시각 ISO8601.
+
+    Returns:
+        term 기준 정렬된 병합 결과.
+    """
     by_key: dict[str, dict[str, Any]] = {}
     for row in existing:
         t = row.get("term")
         if isinstance(t, str) and t.strip():
-            by_key[normalize_term_key(t)] = dict(row)
+            k = normalize_term_key(t)
+            by_key[k] = migrate_terms_row(dict(row), run_day)
 
-    now = _utc_now_iso()
-    for row in new_items:
+    batch = dedupe_new_batch(new_items)
+    for row in batch:
         key = normalize_term_key(row["term"])
         prev = by_key.get(key, {})
+        prev = migrate_terms_row(prev, run_day) if prev else {}
+        prev_ac = int(prev.get("appearance_count", 0) or 0)
         by_key[key] = {
             "term": row["term"],
             "meaning": row["meaning"],
-            "added_at": prev.get("added_at", now),
-            "updated_at": now,
+            "added_at": prev.get("added_at", now_iso),
+            "updated_at": now_iso,
+            "appearance_count": prev_ac + 1,
+            "dates_seen": _merge_dates_seen(prev.get("dates_seen"), run_day),
         }
     return sorted(by_key.values(), key=lambda x: normalize_term_key(x["term"]))
+
+
+def build_top_terms_by_appearance(terms: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    """appearance_count가 큰 용어부터 요약 리스트를 만듭니다."""
+    scored: list[tuple[int, str, dict[str, Any]]] = []
+    for t in terms:
+        if not isinstance(t, dict):
+            continue
+        name = t.get("term")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        ac = int(t.get("appearance_count", 1) or 1)
+        scored.append((ac, normalize_term_key(name), t))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    out: list[dict[str, Any]] = []
+    for ac, _, t in scored[:limit]:
+        ds = t.get("dates_seen")
+        last_d = ds[-1] if isinstance(ds, list) and ds else None
+        out.append(
+            {
+                "term": t.get("term"),
+                "appearance_count": ac,
+                "last_seen_date": last_d,
+            }
+        )
+    return out
+
+
+def append_by_date_run(
+    by_date: Any,
+    day: str,
+    run_at: str,
+    term_names: list[str],
+) -> dict[str, Any]:
+    """by_date에 해당 일자의 실행 한 건을 추가합니다."""
+    if not isinstance(by_date, dict):
+        by_date = {}
+    day_entry = by_date.get(day)
+    if not isinstance(day_entry, dict):
+        day_entry = {"runs": []}
+    runs = day_entry.get("runs")
+    if not isinstance(runs, list):
+        runs = []
+    runs.append(
+        {
+            "run_at": run_at,
+            "extracted_terms": term_names,
+        }
+    )
+    day_entry["runs"] = runs
+    day_entry["last_run_at"] = run_at
+    by_date[day] = day_entry
+    return by_date
 
 
 def run() -> None:
@@ -379,20 +524,44 @@ def run() -> None:
         logger.warning("추출된 용어가 없습니다.")
         sys.exit(2)
 
+    top_terms_limit = _env_int("TECH_TERM_TOP_FREQUENT_LIMIT", 40)
+
     data = load_json(out_path)
-    merged = merge_terms(data["terms"], new_terms)
-    data["terms"] = merged
+    run_day = _utc_date_str()
     now = _utc_now_iso()
+    merged = merge_terms(data["terms"], new_terms, run_day, now)
+    data["terms"] = merged
+
+    batch_for_log = dedupe_new_batch(new_terms)
+    term_names_run = [x["term"] for x in batch_for_log]
+    data["by_date"] = append_by_date_run(
+        data.get("by_date"),
+        run_day,
+        now,
+        term_names_run,
+    )
+
     data["meta"]["updated_at"] = now
     data["meta"]["last_fetch_at"] = now
     data["meta"]["feeds_ok"] = ok_feeds
     data["meta"]["feeds_errors"] = feed_errors
     data["meta"]["corpus_chars"] = len(corpus)
     data["meta"]["last_extract_count"] = len(new_terms)
+    data["meta"]["last_run_day"] = run_day
     data["meta"]["model"] = model
+    data["meta"]["top_terms_by_appearance"] = build_top_terms_by_appearance(
+        merged,
+        top_terms_limit,
+    )
 
     save_json(out_path, data)
-    logger.info("저장 완료: %s (총 %d개 용어)", out_path, len(merged))
+    logger.info(
+        "저장 완료: %s (총 %d개 용어, 이번 실행 고유 용어 %d개, 일자 %s)",
+        out_path,
+        len(merged),
+        len(batch_for_log),
+        run_day,
+    )
 
 
 def main() -> None:
