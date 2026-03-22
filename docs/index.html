@@ -557,7 +557,26 @@
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
     <script>
       (function () {
-        const JSON_URL = "data/tech_terms.json";
+        /**
+         * GitHub Pages 프로젝트 사이트는 보통 …/저장소이름/ 가 루트입니다.
+         * 주소가 …/저장소이름 (슬래시 없음)이면 브라우저가 상대경로를 한 단계 위로 잡아
+         * data/tech_terms.json → 도메인 루트의 /data/… 로 가서 404가 납니다.
+         * 현재 문서가 속한 "디렉터리"를 기준으로 JSON 절대 URL을 만듭니다.
+         */
+        function resolveTechTermsJsonUrl() {
+          const path = location.pathname;
+          let dir = path;
+          if (!dir.endsWith("/")) {
+            const last = path.split("/").pop() || "";
+            if (/\.html?$/i.test(last)) {
+              dir = path.replace(/\/[^/]+$/, "/");
+            } else {
+              dir = path + "/";
+            }
+          }
+          return new URL("data/tech_terms.json", location.origin + dir).href;
+        }
+        const JSON_URL = resolveTechTermsJsonUrl();
         const TZ_SEOUL = "Asia/Seoul";
         let allTerms = [];
         let cloudResizeTimer = null;
@@ -943,7 +962,7 @@
             er.textContent =
               "JSON을 불러오지 못했습니다. " +
               (err && err.message ? err.message : String(err)) +
-              " 로컬에서는 docs/data/tech_terms.json 경로를 확인하세요.";
+              " 저장소에는 docs/data/tech_terms.json 이고, 배포 루트에서는 data/tech_terms.json 입니다.";
           });
       })();
     </script>
