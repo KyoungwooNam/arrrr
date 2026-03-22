@@ -222,11 +222,12 @@
         color: var(--muted);
         margin: 0 0 0.75rem;
       }
+      /* 명시 height: 자식 canvas의 % 높이가 0으로 붕괴하지 않도록 */
       .wordcloud-wrap {
         position: relative;
         width: 100%;
-        min-height: clamp(220px, 32vw, 340px);
-        max-height: min(380px, 45vh);
+        height: min(clamp(220px, 32vw, 340px), min(380px, 45vh));
+        min-height: 200px;
         border-radius: calc(var(--radius) - 4px);
         background: var(--bg-elevated);
         border: 1px solid var(--border);
@@ -234,8 +235,8 @@
       }
       #wordcloud-canvas {
         display: block;
-        width: 100% !important;
-        height: 100% !important;
+        width: 100%;
+        height: 100%;
       }
       .cloud-fallback {
         display: none;
@@ -721,8 +722,15 @@
           }
           fallback.classList.remove("is-visible");
 
-          const w = wrap.clientWidth;
-          const h = wrap.clientHeight;
+          /* 레이아웃 직후 0이 나오는 경우 대비 */
+          let w = wrap.clientWidth;
+          let h = wrap.clientHeight;
+          if (h < 48) {
+            h = wrap.offsetHeight || 220;
+          }
+          if (w < 48) {
+            w = Math.max(wrap.offsetWidth, 240);
+          }
           if (w < 40 || h < 40) return;
 
           const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -730,8 +738,7 @@
           canvas.height = Math.floor(h * dpr);
           canvas.style.width = w + "px";
           canvas.style.height = h + "px";
-          const ctx = canvas.getContext("2d");
-          if (ctx) ctx.scale(dpr, dpr);
+          /* WordCloud2는 canvas.width/height 버퍼 좌표로 그림 — ctx.scale과 함께 쓰면 격자/클리어가 어긋남 */
 
           const bg = getComputedStyle(document.documentElement)
             .getPropertyValue("--bg-elevated")
@@ -925,12 +932,7 @@
             document.getElementById("app").hidden = false;
 
             const topList = buildTopList(meta);
-            if (
-              topList.length &&
-              topList.some((x) => (Number(x.appearance_count) || 1) > 1)
-            ) {
-              scheduleWordCloud(topList);
-            } else if (topList.length >= 3) {
+            if (topList.length >= 1) {
               scheduleWordCloud(topList);
             }
           })
