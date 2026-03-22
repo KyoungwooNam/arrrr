@@ -29,6 +29,7 @@
         --radius: 14px;
         --font-display: "Outfit", system-ui, sans-serif;
         --font-body: "Source Serif 4", Georgia, serif;
+        --pad-x: clamp(0.85rem, 3vw, 1.5rem);
       }
       @media (prefers-color-scheme: light) {
         :root {
@@ -58,58 +59,82 @@
         color: var(--fg);
         line-height: 1.6;
         background-image: radial-gradient(
-            ellipse 120% 80% at 100% -20%,
-            rgba(124, 156, 255, 0.08),
+            ellipse 100% 70% at 100% -15%,
+            rgba(124, 156, 255, 0.07),
             transparent 50%
           ),
           radial-gradient(
-            ellipse 80% 50% at 0% 100%,
-            rgba(92, 225, 200, 0.06),
+            ellipse 70% 45% at 0% 100%,
+            rgba(92, 225, 200, 0.05),
             transparent 45%
           );
       }
       .wrap {
-        max-width: 44rem;
+        width: 100%;
+        max-width: min(1180px, 100% - 2 * var(--pad-x));
         margin: 0 auto;
-        padding: 1.75rem 1.15rem 3.5rem;
+        padding: 1.5rem var(--pad-x) 3rem;
       }
       header {
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
+      }
+      @media (min-width: 768px) {
+        header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 1rem 2rem;
+          align-items: end;
+        }
+        .header-text {
+          grid-column: 1;
+        }
+        .meta-bar {
+          grid-column: 2;
+          grid-row: 1 / span 2;
+          justify-content: flex-end;
+          align-content: start;
+          max-width: 22rem;
+        }
       }
       .brand {
         font-family: var(--font-display);
-        font-size: clamp(1.6rem, 5vw, 2.05rem);
+        font-size: clamp(1.5rem, 4vw, 2.1rem);
         font-weight: 700;
         letter-spacing: -0.04em;
-        margin: 0 0 0.4rem;
-        line-height: 1.15;
+        margin: 0 0 0.35rem;
+        line-height: 1.12;
       }
       .brand span {
         color: var(--accent);
       }
       .tagline {
         color: var(--muted);
-        font-size: 0.98rem;
+        font-size: clamp(0.88rem, 2.2vw, 1rem);
         margin: 0;
-        font-family: var(--font-body);
+        max-width: 42ch;
       }
       .tz-note {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         color: var(--muted);
-        margin: 0.35rem 0 0;
+        margin: 0.4rem 0 0;
         opacity: 0.9;
       }
       .meta-bar {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.45rem 0.6rem;
-        margin-top: 1.15rem;
+        gap: 0.4rem 0.55rem;
+        margin-top: 1rem;
+      }
+      @media (min-width: 768px) {
+        .meta-bar {
+          margin-top: 0;
+        }
       }
       .pill {
         font-family: var(--font-display);
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 500;
-        padding: 0.35rem 0.75rem;
+        padding: 0.32rem 0.7rem;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 999px;
@@ -121,15 +146,10 @@
       }
       .toolbar {
         display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-        margin-bottom: 1.75rem;
-      }
-      @media (min-width: 520px) {
-        .toolbar {
-          flex-direction: row;
-          align-items: center;
-        }
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem 1rem;
+        margin-bottom: 1.25rem;
       }
       .sr {
         position: absolute;
@@ -142,9 +162,9 @@
         border: 0;
       }
       #q {
-        flex: 1;
+        flex: 1 1 12rem;
         min-width: 0;
-        padding: 0.85rem 1rem;
+        padding: 0.8rem 1rem;
         font-size: 1rem;
         font-family: var(--font-body);
         border: 1px solid var(--border);
@@ -163,120 +183,102 @@
       }
       .shown-count {
         font-family: var(--font-display);
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         color: var(--muted);
         white-space: nowrap;
-        align-self: center;
       }
 
-      /* 빈도 인포그래픽 */
-      .info-panel {
+      /* 메인: 넓은 화면에서 가로 2열 (클라우드 + 사이드) */
+      .layout-split {
+        display: grid;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+        align-items: start;
+      }
+      @media (min-width: 900px) {
+        .layout-split {
+          grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+        }
+      }
+
+      .cloud-panel {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 1.25rem 1.35rem 1.4rem;
-        margin-bottom: 1.75rem;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        padding: 1rem 1rem 0.75rem;
+        box-shadow: 0 10px 36px rgba(0, 0, 0, 0.1);
       }
-      .info-panel h2 {
+      .cloud-panel h2 {
         font-family: var(--font-display);
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.14em;
         color: var(--muted);
-        margin: 0 0 1.1rem;
+        margin: 0 0 0.35rem;
       }
-      .freq-chart {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
+      .cloud-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0 0 0.75rem;
       }
-      .freq-row {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto;
-        gap: 0.35rem 0.65rem;
-        align-items: center;
-      }
-      .freq-label {
-        grid-column: 1;
-        grid-row: 1;
-        font-family: var(--font-display);
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--fg);
-        line-height: 1.25;
-        word-break: break-word;
-      }
-      .freq-track {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        height: 10px;
-        border-radius: 999px;
+      .wordcloud-wrap {
+        position: relative;
+        width: 100%;
+        min-height: clamp(220px, 32vw, 340px);
+        max-height: min(380px, 45vh);
+        border-radius: calc(var(--radius) - 4px);
         background: var(--bg-elevated);
+        border: 1px solid var(--border);
         overflow: hidden;
+      }
+      #wordcloud-canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .cloud-fallback {
+        display: none;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 0.5rem 0 0;
+      }
+      .cloud-fallback.is-visible {
+        display: flex;
+      }
+      .cloud-fallback span {
+        font-family: var(--font-display);
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        background: var(--bg-elevated);
+        border-radius: 6px;
         border: 1px solid var(--border);
       }
-      .freq-val {
-        grid-column: 2;
-        grid-row: 1;
-        align-self: start;
+
+      .side-aside {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
       }
-      @media (min-width: 480px) {
-        .freq-row {
-          grid-template-columns: minmax(5rem, 7.5rem) 1fr 2.5rem;
-          grid-template-rows: auto;
+      @media (min-width: 900px) {
+        .side-aside {
+          position: sticky;
+          top: 0.75rem;
         }
-        .freq-label {
-          grid-column: 1;
-          grid-row: 1;
-        }
-        .freq-track {
-          grid-column: 2;
-          grid-row: 1;
-        }
-        .freq-val {
-          grid-column: 3;
-          grid-row: 1;
-          align-self: center;
-        }
-      }
-      .freq-fill {
-        height: 100%;
-        border-radius: inherit;
-        min-width: 4px;
-        transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        background: linear-gradient(
-          90deg,
-          var(--chart-1),
-          var(--chart-2) 55%,
-          var(--chart-3)
-        );
-        box-shadow: 0 0 16px rgba(124, 156, 255, 0.35);
-      }
-      .freq-val {
-        font-family: var(--font-display);
-        font-size: 0.78rem;
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        color: var(--accent-hot);
-        text-align: right;
       }
 
       details.by-date {
-        margin-bottom: 1.75rem;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
         overflow: hidden;
       }
       details.by-date summary {
-        padding: 1rem 1.15rem;
+        padding: 0.9rem 1rem;
         cursor: pointer;
         font-family: var(--font-display);
         font-weight: 600;
-        font-size: 0.88rem;
+        font-size: 0.85rem;
         list-style: none;
         color: var(--fg-soft);
       }
@@ -286,58 +288,66 @@
       details.by-date summary::before {
         content: "▸ ";
         color: var(--accent);
-        margin-right: 0.2rem;
       }
       details.by-date[open] summary::before {
         content: "▾ ";
       }
       .day-block {
-        padding: 0 1.15rem 1.1rem;
+        padding: 0 1rem 1rem;
         border-top: 1px solid var(--border);
       }
       .day-block h3 {
         font-family: var(--font-display);
-        font-size: 0.85rem;
-        margin: 0.9rem 0 0.4rem;
+        font-size: 0.82rem;
+        margin: 0.75rem 0 0.35rem;
         color: var(--fg);
       }
       .day-block h3:first-child {
-        margin-top: 0.65rem;
+        margin-top: 0.55rem;
       }
       .run-line {
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         color: var(--muted);
-        margin: 0 0 0.4rem;
+        margin: 0 0 0.35rem;
       }
       .term-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem;
+        gap: 0.3rem;
       }
       .term-tags span {
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-family: var(--font-display);
-        padding: 0.2rem 0.5rem;
+        padding: 0.15rem 0.45rem;
         background: var(--bg-elevated);
         border-radius: 6px;
         border: 1px solid var(--border);
         color: var(--fg-soft);
       }
 
-      /* 용어: 클릭 시에만 설명 */
       .terms-head {
         font-family: var(--font-display);
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 600;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--muted);
-        margin: 0 0 0.75rem;
+        margin: 0 0 0.65rem;
       }
       #terms {
-        display: flex;
-        flex-direction: column;
+        display: grid;
         gap: 0.55rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 560px) {
+        #terms {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 960px) {
+        #terms {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
       details.term-card {
         border: 1px solid var(--border);
@@ -345,22 +355,34 @@
         background: var(--surface);
         overflow: hidden;
         transition: border-color 0.15s, box-shadow 0.15s;
+        min-height: 0;
       }
       details.term-card[open] {
         border-color: rgba(124, 156, 255, 0.45);
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+        grid-column: 1 / -1;
+      }
+      @media (min-width: 560px) {
+        details.term-card[open] {
+          grid-column: span 2;
+        }
+      }
+      @media (min-width: 960px) {
+        details.term-card[open] {
+          grid-column: span 3;
+        }
       }
       details.term-card summary {
         list-style: none;
         cursor: pointer;
-        padding: 1rem 1.1rem;
+        padding: 0.85rem 1rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.75rem;
+        gap: 0.5rem;
         font-family: var(--font-display);
         font-weight: 600;
-        font-size: 1.02rem;
+        font-size: clamp(0.92rem, 2vw, 1.02rem);
         color: var(--accent-hot);
         user-select: none;
       }
@@ -370,12 +392,13 @@
       .term-summary-left {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.45rem;
         flex-wrap: wrap;
         min-width: 0;
       }
       .term-name {
         letter-spacing: -0.02em;
+        word-break: break-word;
       }
       .term-badges {
         display: flex;
@@ -383,9 +406,9 @@
         gap: 0.25rem;
       }
       .badge {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 600;
-        padding: 0.15rem 0.45rem;
+        padding: 0.12rem 0.4rem;
         border-radius: 6px;
         background: var(--bg-elevated);
         color: var(--muted);
@@ -397,8 +420,8 @@
       }
       .chev {
         flex-shrink: 0;
-        width: 1.25rem;
-        height: 1.25rem;
+        width: 1.2rem;
+        height: 1.2rem;
         color: var(--muted);
         transition: transform 0.2s ease;
       }
@@ -407,29 +430,27 @@
         color: var(--accent);
       }
       .term-body {
-        padding: 0 1.1rem 1.15rem;
+        padding: 0 1rem 1rem;
         border-top: 1px solid var(--border);
-        animation: fadeIn 0.22s ease;
+        animation: fadeIn 0.2s ease;
       }
       @keyframes fadeIn {
         from {
           opacity: 0;
-          transform: translateY(-4px);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
         }
       }
       .meaning {
         margin: 0;
-        font-size: 0.98rem;
+        font-size: 0.95rem;
         color: var(--fg-soft);
         white-space: pre-wrap;
       }
       .term-meta {
-        margin-top: 0.75rem;
-        font-size: 0.75rem;
+        margin-top: 0.65rem;
+        font-size: 0.72rem;
         color: var(--muted);
         font-family: var(--font-display);
       }
@@ -437,6 +458,7 @@
         text-align: center;
         color: var(--muted);
         padding: 2rem 1rem;
+        grid-column: 1 / -1;
       }
       .state {
         text-align: center;
@@ -448,10 +470,10 @@
         color: var(--danger);
       }
       footer.site {
-        margin-top: 2.75rem;
-        padding-top: 1.25rem;
+        margin-top: 2.5rem;
+        padding-top: 1.1rem;
         border-top: 1px solid var(--border);
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         color: var(--muted);
         font-family: var(--font-display);
       }
@@ -467,12 +489,14 @@
   <body>
     <div class="wrap">
       <header>
-        <h1 class="brand"><span>HR Tech</span> 용어 모음</h1>
-        <p class="tagline">
-          RSS로 모은 뉴스에서 추출한 테크 용어입니다. 카드를 누르면 풀이가
-          펼쳐집니다.
-        </p>
-        <p class="tz-note">날짜·시각은 Asia/Seoul(한국 표준시) 기준입니다.</p>
+        <div class="header-text">
+          <h1 class="brand"><span>HR Tech</span> 용어 모음</h1>
+          <p class="tagline">
+            RSS로 모은 뉴스에서 추출한 테크 용어입니다. 카드를 누르면 풀이가
+            펼쳐집니다.
+          </p>
+          <p class="tz-note">날짜·시각은 Asia/Seoul(한국 표준시) 기준입니다.</p>
+        </div>
         <div class="meta-bar" id="meta-bar" hidden></div>
       </header>
 
@@ -491,18 +515,31 @@
           <span class="shown-count" id="shown-count"></span>
         </div>
 
-        <section class="info-panel" id="top-panel" hidden aria-labelledby="freq-title">
-          <h2 id="freq-title">자주 잡힌 용어</h2>
-          <p class="tagline" style="margin: -0.5rem 0 0.75rem; font-size: 0.85rem">
-            등장 횟수에 비례한 막대 길이입니다.
-          </p>
-          <div class="freq-chart" id="freq-chart"></div>
-        </section>
+        <div class="layout-split">
+          <section
+            class="cloud-panel"
+            id="top-panel"
+            hidden
+            aria-labelledby="cloud-title"
+          >
+            <h2 id="cloud-title">자주 잡힌 용어</h2>
+            <p class="cloud-hint">
+              글자 크기는 등장 횟수에 비례합니다. 단어를 누르면 아래 목록으로
+              이동합니다.
+            </p>
+            <div class="wordcloud-wrap" id="wordcloud-wrap">
+              <canvas id="wordcloud-canvas" aria-label="용어 워드클라우드"></canvas>
+            </div>
+            <div class="cloud-fallback" id="cloud-fallback"></div>
+          </section>
 
-        <details class="by-date" id="by-date-wrap" hidden>
-          <summary>날짜별 수집 기록</summary>
-          <div id="by-date-body"></div>
-        </details>
+          <aside class="side-aside">
+            <details class="by-date" id="by-date-wrap" hidden>
+              <summary>날짜별 수집 기록</summary>
+              <div id="by-date-body"></div>
+            </details>
+          </aside>
+        </div>
 
         <h2 class="terms-head">전체 용어</h2>
         <section id="terms" aria-label="용어 목록"></section>
@@ -512,16 +549,18 @@
         <a href="https://github.com/KyoungwooNam/arrrr">소스 저장소</a>
         ·
         <a href="https://pages.github.com/">GitHub Pages</a>
-        · 저장소: <code>docs/data/tech_terms.json</code> (페이지 URL은
-        <code>…/data/tech_terms.json</code>)
+        · 저장소: <code>docs/data/tech_terms.json</code>
       </footer>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
     <script>
       (function () {
         const JSON_URL = "data/tech_terms.json";
         const TZ_SEOUL = "Asia/Seoul";
         let allTerms = [];
+        let cloudResizeTimer = null;
+        let lastCloudList = null;
 
         function el(tag, attrs, children) {
           const n = document.createElement(tag);
@@ -538,7 +577,17 @@
           return n;
         }
 
-        /** ISO8601(Z 등) 문자열을 서울 로컬로 표시 (dateStyle·weekday 혼용 금지 → 필드만 지정) */
+        function termKey(name) {
+          return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
+        }
+
+        function escapeCssAttr(val) {
+          if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(val);
+          }
+          return String(val).replace(/["\\]/g, "\\$&");
+        }
+
         function formatSeoulDateTime(iso) {
           if (!iso || typeof iso !== "string") return "—";
           const d = new Date(iso);
@@ -557,7 +606,6 @@
           }
         }
 
-        /** YYYY-MM-DD 키(UTC 자정)를 서울 타임존으로 요일·날짜 표시 */
         function formatSeoulDateKey(dayKey) {
           if (!dayKey || typeof dayKey !== "string") return "—";
           const d = new Date(dayKey + "T00:00:00Z");
@@ -600,53 +648,138 @@
           bar.hidden = false;
         }
 
-        /** 상대 막대 길이용 최댓값 */
-        function renderFreqChart(top) {
-          if (!Array.isArray(top) || top.length === 0) return;
-          const slice = top.slice(0, 16).filter((r) => r && r.term);
-          if (!slice.length) return;
-          const max = Math.max(
-            ...slice.map((r) => Number(r.appearance_count) || 1),
-            1
-          );
-          const chart = document.getElementById("freq-chart");
-          chart.innerHTML = "";
-          slice.forEach((row, i) => {
-            const n = Number(row.appearance_count) || 1;
-            const pct = Math.max(8, Math.round((n / max) * 100));
-            const colors = [
-              "var(--chart-1)",
-              "var(--chart-2)",
-              "var(--chart-3)",
-            ];
-            const rowEl = el("div", { class: "freq-row" });
-            rowEl.appendChild(
-              el("span", { class: "freq-label", text: row.term })
-            );
-            const track = el("div", { class: "freq-track" });
-            const fill = el("div", {
-              class: "freq-fill",
-              style:
-                "width:" +
-                pct +
-                "%;background:linear-gradient(90deg," +
-                colors[i % 3] +
-                ",rgba(124,156,255,0.65))",
-            });
-            fill.setAttribute("role", "presentation");
-            track.appendChild(fill);
-            rowEl.appendChild(track);
-            rowEl.appendChild(
-              el("span", {
-                class: "freq-val",
-                text: String(n) + "회",
-                title: "누적 등장",
-              })
-            );
-            chart.appendChild(rowEl);
-          });
-          document.getElementById("top-panel").hidden = false;
+        function buildTopList(meta) {
+          if (
+            Array.isArray(meta.top_terms_by_appearance) &&
+            meta.top_terms_by_appearance.length
+          ) {
+            return meta.top_terms_by_appearance
+              .filter((r) => r && r.term)
+              .slice(0, 80);
+          }
+          const fromTerms = [...allTerms]
+            .map((t) => ({
+              term: t.term,
+              appearance_count: Number(t.appearance_count) || 1,
+            }))
+            .sort(
+              (a, b) =>
+                b.appearance_count - a.appearance_count ||
+                (a.term || "").localeCompare(b.term || "")
+            )
+            .slice(0, 80);
+          return fromTerms;
         }
+
+        function hslWordColor() {
+          const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const hues = [210, 175, 265, 145, 32, 330];
+          const h = hues[Math.floor(Math.random() * hues.length)];
+          const s = dark ? "62%" : "58%";
+          const l = dark ? "68%" : "36%";
+          return "hsl(" + h + "," + s + "," + l + ")";
+        }
+
+        function scrollToTerm(word) {
+          const key = termKey(word);
+          const card = document.querySelector(
+            '[data-term-key="' + escapeCssAttr(key) + '"]'
+          );
+          if (!card) return;
+          card.open = true;
+          card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function drawWordCloud(list) {
+          lastCloudList = list;
+          const wrap = document.getElementById("wordcloud-wrap");
+          const canvas = document.getElementById("wordcloud-canvas");
+          const fallback = document.getElementById("cloud-fallback");
+          const panel = document.getElementById("top-panel");
+
+          if (!list || !list.length) {
+            panel.hidden = true;
+            return;
+          }
+
+          const pairs = list.map((r) => [
+            String(r.term),
+            Math.max(1, Number(r.appearance_count) || 1),
+          ]);
+          const maxW = Math.max(...pairs.map((p) => p[1]), 1);
+
+          if (typeof WordCloud !== "function") {
+            fallback.innerHTML = "";
+            pairs.slice(0, 24).forEach(([w, n]) => {
+              const s = el("span", { text: w + " (" + n + ")" });
+              s.style.fontSize = 0.65 + (n / maxW) * 0.5 + "rem";
+              fallback.appendChild(s);
+            });
+            fallback.classList.add("is-visible");
+            panel.hidden = false;
+            return;
+          }
+          fallback.classList.remove("is-visible");
+
+          const w = wrap.clientWidth;
+          const h = wrap.clientHeight;
+          if (w < 40 || h < 40) return;
+
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          canvas.style.width = w + "px";
+          canvas.style.height = h + "px";
+          const ctx = canvas.getContext("2d");
+          if (ctx) ctx.scale(dpr, dpr);
+
+          const bg = getComputedStyle(document.documentElement)
+            .getPropertyValue("--bg-elevated")
+            .trim();
+
+          WordCloud(canvas, {
+            list: pairs,
+            gridSize: Math.max(4, Math.round(8 * (w / 1024))),
+            weightFactor: function (size) {
+              return (
+                Math.pow(size / maxW, 0.72) * Math.min(18, w / 55) + 10
+              );
+            },
+            fontFamily: "Outfit, system-ui, sans-serif",
+            color: function () {
+              return hslWordColor();
+            },
+            rotateRatio: 0.15,
+            rotationSteps: 2,
+            backgroundColor: bg || "#12151c",
+            minSize: 8,
+            click: function (item) {
+              if (item && item[0]) scrollToTerm(item[0]);
+            },
+          });
+
+          panel.hidden = false;
+        }
+
+        function scheduleWordCloud(list) {
+          if (!list || !list.length) {
+            document.getElementById("top-panel").hidden = true;
+            return;
+          }
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              drawWordCloud(list);
+            });
+          });
+        }
+
+        window.addEventListener("resize", function () {
+          if (!lastCloudList || typeof WordCloud !== "function") return;
+          clearTimeout(cloudResizeTimer);
+          cloudResizeTimer = setTimeout(function () {
+            drawWordCloud(lastCloudList);
+          }, 200);
+        });
 
         function renderByDate(byDate) {
           if (!byDate || typeof byDate !== "object") return;
@@ -658,9 +791,7 @@
           keys.forEach((day) => {
             const entry = byDate[day];
             const block = el("div", { class: "day-block" });
-            block.appendChild(
-              el("h3", { text: formatSeoulDateKey(day) })
-            );
+            block.appendChild(el("h3", { text: formatSeoulDateKey(day) }));
             const runs = entry && entry.runs;
             if (Array.isArray(runs)) {
               runs.forEach((r) => {
@@ -696,10 +827,7 @@
             "path"
           );
           p.setAttribute("fill", "currentColor");
-          p.setAttribute(
-            "d",
-            "M7 10l5 5 5-5H7z"
-          );
+          p.setAttribute("d", "M7 10l5 5 5-5H7z");
           svg.appendChild(p);
           return svg;
         }
@@ -722,6 +850,8 @@
 
           list.forEach((t) => {
             const details = el("details", { class: "term-card" });
+            details.setAttribute("data-term-key", termKey(t.term));
+
             const summary = el("summary");
             const left = el("div", { class: "term-summary-left" });
             left.appendChild(
@@ -790,30 +920,19 @@
             allTerms = Array.isArray(data.terms) ? data.terms : [];
             const meta = data.meta || {};
             renderMeta(meta);
-            if (
-              Array.isArray(meta.top_terms_by_appearance) &&
-              meta.top_terms_by_appearance.length
-            ) {
-              renderFreqChart(meta.top_terms_by_appearance);
-            } else {
-              const fromTerms = [...allTerms]
-                .map((t) => ({
-                  term: t.term,
-                  appearance_count: Number(t.appearance_count) || 1,
-                }))
-                .sort(
-                  (a, b) =>
-                    b.appearance_count - a.appearance_count ||
-                    (a.term || "").localeCompare(b.term || "")
-                )
-                .slice(0, 16);
-              if (fromTerms.some((x) => x.appearance_count > 1)) {
-                renderFreqChart(fromTerms);
-              }
-            }
             renderByDate(data.by_date);
             renderTerms(allTerms);
             document.getElementById("app").hidden = false;
+
+            const topList = buildTopList(meta);
+            if (
+              topList.length &&
+              topList.some((x) => (Number(x.appearance_count) || 1) > 1)
+            ) {
+              scheduleWordCloud(topList);
+            } else if (topList.length >= 3) {
+              scheduleWordCloud(topList);
+            }
           })
           .catch((err) => {
             document.getElementById("loading").hidden = true;
