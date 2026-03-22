@@ -30,8 +30,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
-        run: |
-          python scripts/collect_tech_terms.py --batch-size 20
+        run: python scripts/collect_tech_terms.py
 
       - name: Commit and push if changed
         run: |

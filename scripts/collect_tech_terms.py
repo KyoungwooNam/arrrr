@@ -1,38 +1,46 @@
 #!/usr/bin/env python3
 # Copyright 2025
-"""테크 도메인 맥락을 프롬프트로 제시하고 OpenAI로 용어·의미를 추출해 JSON에 병합 저장합니다.
+"""테크 관련 RSS 피드를 웹에서 수집한 뒤 OpenAI로 용어·의미를 추출해 JSON에 병합합니다.
 
-웹 스크래핑이나 외부 용어 API 없이, 모델이 알고 있는 테크 생태계 지식만으로
-배치 단위로 용어를 생성합니다. GitHub Actions에서 주기 실행하거나 로컬에서
-`.env`의 `OPENAI_API_KEY`로 테스트할 수 있습니다.
+외부 '용어 사전 API'는 쓰지 않고, 피드 URL로 공개 웹 콘텐츠를 가져옵니다.
+실행은 `python scripts/collect_tech_terms.py` 한 줄이며, 동작은 환경 변수·코드
+기본값으로만 제어합니다(GitHub Actions와 로컬 동일).
 """
 
 from __future__ import annotations
 
-import argparse
+import html
 import json
 import logging
 import os
+import re
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# 프로젝트 루트 기준으로 .env 로드 (스크립트 위치와 무관하게 동작)
 _ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(_ROOT / ".env")
 
 logger = logging.getLogger(__name__)
 
-# 프롬프트에 넣을 "테크 맥락" — 실제 HTTP 요청 없이 모델이 참고할 주제만 나열
-_DEFAULT_THEMES = (
-    "Hacker News, Stack Overflow, GitHub, MDN Web Docs, "
-    "Kubernetes·클라우드(AWS/GCP/Azure) 문서, Linux·시스템 프로그래밍, "
-    "데이터베이스·SQL, 머신러닝·MLOps, 보안(CVE, OWASP), "
-    "프론트엔드·백엔드 프레임워크 생태계"
+# 기본 피드: Actions·로컬 모두 동일 (환경변수 TECH_TERM_FEEDS로 덮어쓰기 가능)
+_DEFAULT_FEED_URLS: tuple[str, ...] = (
+    "https://hnrss.org/frontpage",
+    "https://lobste.rs/rss",
+    "https://dev.to/feed",
+)
+
+# 일부 피드(dev.to 등)가 비브라우저 UA를 403으로 막아, 일반 브라우저 문자열을 사용합니다.
+_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 )
 
 
@@ -44,6 +52,155 @@ def _utc_now_iso() -> str:
 def normalize_term_key(term: str) -> str:
     """병합 시 중복 판별용 키(소문자·앞뒤 공백 제거)."""
     return term.strip().lower()
+
+
+def _env_int(name: str, default: int) -> int:
+    """정수 환경 변수를 읽고, 잘못된 값이면 기본값을 씁니다."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("환경 변수 %s=%r 은(는) 정수가 아니어서 기본값 %s 사용", name, raw, default)
+        return default
+
+
+def _feed_urls_from_env() -> list[str]:
+    """TECH_TERM_FEEDS(쉼표 구분) 또는 기본 피드 목록을 반환합니다."""
+    raw = os.environ.get("TECH_TERM_FEEDS", "").strip()
+    if not raw:
+        return list(_DEFAULT_FEED_URLS)
+    return [u.strip() for u in raw.split(",") if u.strip()]
+
+
+def _output_path() -> Path:
+    """TECH_TERMS_OUTPUT 또는 data/tech_terms.json 경로."""
+    raw = os.environ.get("TECH_TERMS_OUTPUT", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    return (_ROOT / "data" / "tech_terms.json").resolve()
+
+
+def strip_html(text: str) -> str:
+    """태그를 제거하고 HTML 엔티티를 풀어 평문에 가깝게 만듭니다."""
+    if not text:
+        return ""
+    # 블록 구분을 위해 일부 태그는 줄바꿈으로 치환
+    text = re.sub(r"(?i)</(p|div|br|li|tr)>", "\n", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def fetch_url_bytes(url: str, timeout_sec: int) -> bytes:
+    """GET 요청으로 본문 바이트를 가져옵니다."""
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+        return resp.read()
+
+
+def _xml_text(elem: Any) -> str:
+    """ElementTree 노드의 직계 텍스트와 자식 tail을 이어 붙입니다."""
+    if elem is None:
+        return ""
+    parts: list[str] = []
+    if elem.text:
+        parts.append(elem.text)
+    for child in elem:
+        parts.append(_xml_text(child))
+        if child.tail:
+            parts.append(child.tail)
+    return "".join(parts)
+
+
+def parse_rss_atom(xml_bytes: bytes, max_entries: int) -> list[dict[str, str]]:
+    """RSS 2.0 / Atom entry에서 제목·요약·링크를 최대 max_entries개 추출합니다."""
+    root = ElementTree.fromstring(xml_bytes)
+    tag = lambda t: t.split("}")[-1] if "}" in t else t  # 네임스페이스 제거
+
+    entries: list[dict[str, str]] = []
+
+    root_name = tag(root.tag)
+    if root_name == "rss":
+        channel = root.find("channel")
+        if channel is None:
+            return entries
+        items = channel.findall("item")[:max_entries]
+        for item in items:
+            title_el = item.find("title")
+            desc_el = item.find("description")
+            link_el = item.find("link")
+            title = strip_html(_xml_text(title_el) if title_el is not None else "")
+            summary = strip_html(_xml_text(desc_el) if desc_el is not None else "")
+            link = (link_el.text or "").strip() if link_el is not None else ""
+            if title or summary:
+                entries.append({"title": title, "summary": summary, "link": link})
+    elif root_name == "feed":
+        # Atom
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall("atom:entry", ns)[:max_entries]:
+            title_el = entry.find("atom:title", ns)
+            summary_el = entry.find("atom:summary", ns)
+            if summary_el is None:
+                summary_el = entry.find("atom:content", ns)
+            link_el = entry.find("atom:link", ns)
+            title = strip_html(_xml_text(title_el) if title_el is not None else "")
+            summary = strip_html(_xml_text(summary_el) if summary_el is not None else "")
+            link = ""
+            if link_el is not None and link_el.get("href"):
+                link = (link_el.get("href") or "").strip()
+            if title or summary:
+                entries.append({"title": title, "summary": summary, "link": link})
+
+    return entries
+
+
+def collect_corpus_from_feeds(
+    urls: list[str],
+    max_entries_per_feed: int,
+    max_total_chars: int,
+    timeout_sec: int,
+) -> tuple[str, list[str], list[str]]:
+    """피드를 순회해 하나의 본문 문자열과 성공 URL·실패 로그를 반환합니다."""
+    chunks: list[str] = []
+    ok_urls: list[str] = []
+    errors: list[str] = []
+
+    for url in urls:
+        try:
+            body = fetch_url_bytes(url, timeout_sec=timeout_sec)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            errors.append(f"{url}: {exc}")
+            logger.warning("피드 요청 실패 %s — %s", url, exc)
+            continue
+
+        try:
+            entries = parse_rss_atom(body, max_entries_per_feed)
+        except ElementTree.ParseError as exc:
+            errors.append(f"{url}: XML parse {exc}")
+            logger.warning("피드 파싱 실패 %s — %s", url, exc)
+            continue
+
+        if not entries:
+            errors.append(f"{url}: 항목 없음")
+            continue
+
+        ok_urls.append(url)
+        for e in entries:
+            line = e["title"]
+            if e["summary"]:
+                line = f"{line}\n{e['summary']}"
+            if e["link"]:
+                line = f"{line}\n{e['link']}"
+            chunks.append(line.strip())
+
+    corpus = "\n\n---\n\n".join(chunks)
+    if len(corpus) > max_total_chars:
+        corpus = corpus[:max_total_chars] + "\n\n[truncated]"
+
+    return corpus, ok_urls, errors
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -71,49 +228,56 @@ def save_json(path: Path, data: dict[str, Any]) -> None:
         f.write("\n")
 
 
-def build_user_prompt(batch_size: int, themes: str) -> str:
-    """모델에게 줄 사용자 메시지(한국어 의미·JSON만 출력 요구)."""
-    return f"""다음은 실제로 웹을 조회하지 않고, 당신이 알고 있는 지식만으로
-답해야 하는 주제 범위입니다: {themes}
+def build_extraction_prompt(corpus: str, max_terms: int) -> str:
+    """수집 본문과 추출 상한을 넣은 사용자 메시지를 만듭니다."""
+    return f"""아래 텍스트는 테크 관련 웹사이트의 RSS 피드에서 자동으로 모은
+제목·요약·링크 모음입니다.
 
-위 맥락에서 소프트웨어·인프라·보안·데이터·AI 등 **전문 테크 용어**를
-서로 겹치지 않게 {batch_size}개 뽑아 주세요.
+할 일:
+1. 본문에 **실제로 등장**하거나, 본문이 다루는 주제와 **직접 연결**되는
+   소프트웨어·인프라·보안·데이터·AI·하드웨어 등 **전문 테크 용어만** 고릅니다.
+2. 본문과 무관한 일반 상식·유행어는 넣지 않습니다.
+3. 서로 다른 용어를 최대 {max_terms}개까지 뽑습니다 (부족하면 있는 만큼만).
 
-각 항목에 대해:
-- term: 영문 표기(필요하면 약어 병기, 예: "gRPC")
-- meaning: 한국어로 한 문단 이내로 정의·용도 설명
+각 항목:
+- term: 영문 표기 (약어는 그대로, 예: gRPC)
+- meaning: 한국어로 한 문단 이내 정의·맥락 설명
 
-반드시 아래 JSON 객체만 출력하세요. 다른 텍스트·코드펜스는 금지입니다.
-{{"terms":[{{"term":"...","meaning":"..."}},...]}}"""
+반드시 JSON 객체만 출력하세요. 마크다운·코드펜스 금지.
+{{"terms":[{{"term":"...","meaning":"..."}}]}}
+
+--- 본문 시작 ---
+{corpus}
+--- 본문 끝 ---"""
 
 
-def fetch_terms_from_openai(
+def extract_terms_with_openai(
     client: OpenAI,
     model: str,
-    batch_size: int,
-    themes: str,
+    corpus: str,
+    max_terms: int,
 ) -> list[dict[str, str]]:
-    """OpenAI Chat Completions로 용어 배치를 받아 파싱합니다.
+    """OpenAI로 본문에서 용어를 추출합니다.
 
     Args:
         client: OpenAI 클라이언트.
         model: 모델 이름.
-        batch_size: 이번에 추가할 용어 개수.
-        themes: 프롬프트에 넣을 테크 맥락 설명.
+        corpus: RSS에서 모은 본문.
+        max_terms: 추출 상한.
 
     Returns:
-        term, meaning 키를 가진 dict 리스트.
+        term, meaning 필드를 가진 dict 리스트.
 
     Raises:
-        ValueError: 응답 JSON이 기대 스키마와 다를 때.
-        RuntimeError: API 오류 시.
+        ValueError: 응답 형식이 잘못된 경우.
+        RuntimeError: API 오류.
     """
     system = (
-        "You are a precise technical glossary assistant. "
-        "Output only valid JSON object with key 'terms' (array of objects "
-        "with string fields 'term' and 'meaning'). No markdown."
+        "You extract technical glossary entries from provided text. "
+        "Output only a JSON object with key 'terms': array of "
+        "{{\"term\": string, \"meaning\": string}}. Korean meanings. No markdown."
     )
-    user = build_user_prompt(batch_size, themes)
+    user = build_extraction_prompt(corpus, max_terms)
     try:
         response = client.chat.completions.create(
             model=model,
@@ -122,7 +286,7 @@ def fetch_terms_from_openai(
                 {"role": "user", "content": user},
             ],
             response_format={"type": "json_object"},
-            temperature=0.7,
+            temperature=0.4,
         )
     except Exception as exc:
         raise RuntimeError(f"OpenAI API 호출 실패: {exc}") from exc
@@ -173,93 +337,70 @@ def merge_terms(
             "added_at": prev.get("added_at", now),
             "updated_at": now,
         }
-    # 정렬: term 기준 안정 정렬
     return sorted(by_key.values(), key=lambda x: normalize_term_key(x["term"]))
 
 
-def run(
-    output_path: Path,
-    batch_size: int,
-    themes: str,
-    model: str | None,
-) -> None:
-    """환경 변수에서 API 키를 읽고 한 배치를 수집해 파일에 반영합니다."""
+def run() -> None:
+    """환경 변수·기본값으로 한 번 수집·추출·저장을 수행합니다."""
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
-        logger.error("OPENAI_API_KEY가 비어 있습니다. .env를 설정하세요.")
+        logger.error("OPENAI_API_KEY가 비어 있습니다.")
         sys.exit(1)
 
-    resolved_model = (model or os.environ.get("OPENAI_MODEL") or "gpt-4o-mini").strip()
-    client = OpenAI(api_key=api_key)
+    model = (os.environ.get("OPENAI_MODEL") or "gpt-4o-mini").strip()
+    max_entries = _env_int("TECH_TERM_MAX_ENTRIES_PER_FEED", 20)
+    max_chars = _env_int("TECH_TERM_MAX_INPUT_CHARS", 18000)
+    max_terms = _env_int("TECH_TERM_MAX_EXTRACT", 25)
+    timeout_sec = _env_int("TECH_TERM_HTTP_TIMEOUT_SEC", 30)
+    feeds = _feed_urls_from_env()
+    out_path = _output_path()
 
-    logger.info("모델=%s, 배치=%d건 수집 시작", resolved_model, batch_size)
-    new_terms = fetch_terms_from_openai(client, resolved_model, batch_size, themes)
+    corpus, ok_feeds, feed_errors = collect_corpus_from_feeds(
+        feeds,
+        max_entries_per_feed=max_entries,
+        max_total_chars=max_chars,
+        timeout_sec=timeout_sec,
+    )
+    if not corpus.strip():
+        logger.error("피드에서 본문을 가져오지 못했습니다. %s", feed_errors)
+        sys.exit(3)
+
+    logger.info(
+        "피드 %d곳 중 %d곳 성공, 본문 약 %d자 → OpenAI 추출 (상한 %d개)",
+        len(feeds),
+        len(ok_feeds),
+        len(corpus),
+        max_terms,
+    )
+
+    client = OpenAI(api_key=api_key)
+    new_terms = extract_terms_with_openai(client, model, corpus, max_terms)
     if not new_terms:
-        logger.warning("수집된 용어가 없습니다. 종료합니다.")
+        logger.warning("추출된 용어가 없습니다.")
         sys.exit(2)
 
-    data = load_json(output_path)
+    data = load_json(out_path)
     merged = merge_terms(data["terms"], new_terms)
     data["terms"] = merged
-    data["meta"]["updated_at"] = _utc_now_iso()
-    data["meta"]["last_batch_size"] = len(new_terms)
-    data["meta"]["model"] = resolved_model
+    now = _utc_now_iso()
+    data["meta"]["updated_at"] = now
+    data["meta"]["last_fetch_at"] = now
+    data["meta"]["feeds_ok"] = ok_feeds
+    data["meta"]["feeds_errors"] = feed_errors
+    data["meta"]["corpus_chars"] = len(corpus)
+    data["meta"]["last_extract_count"] = len(new_terms)
+    data["meta"]["model"] = model
 
-    save_json(output_path, data)
-    logger.info("저장 완료: %s (총 %d개 용어)", output_path, len(merged))
-
-
-def parse_args() -> argparse.Namespace:
-    """CLI 인자를 파싱합니다."""
-    p = argparse.ArgumentParser(
-        description="OpenAI로 테크 용어를 생성해 JSON에 병합 저장합니다.",
-    )
-    p.add_argument(
-        "--output",
-        type=Path,
-        default=_ROOT / "data" / "tech_terms.json",
-        help="저장할 JSON 경로 (기본: data/tech_terms.json)",
-    )
-    p.add_argument(
-        "--batch-size",
-        type=int,
-        default=15,
-        help="이번 실행에서 추가할 용어 개수 (기본: 15)",
-    )
-    p.add_argument(
-        "--themes",
-        type=str,
-        default=_DEFAULT_THEMES,
-        help="프롬프트에 넣을 테크 맥락 설명 문자열",
-    )
-    p.add_argument(
-        "--model",
-        type=str,
-        default=None,
-        help="모델명 (미지정 시 환경변수 OPENAI_MODEL 또는 gpt-4o-mini)",
-    )
-    p.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="디버그 로그 출력",
-    )
-    return p.parse_args()
+    save_json(out_path, data)
+    logger.info("저장 완료: %s (총 %d개 용어)", out_path, len(merged))
 
 
 def main() -> None:
-    """진입점: 로깅 설정 후 run 호출."""
-    args = parse_args()
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s %(message)s",
-    )
-    run(
-        output_path=args.output.resolve(),
-        batch_size=args.batch_size,
-        themes=args.themes,
-        model=args.model,
-    )
+    """로깅 레벨만 환경 변수로 켠 뒤 run()을 호출합니다."""
+    level_name = (os.environ.get("LOG_LEVEL") or "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(level=level, format="%(levelname)s %(message)s")
+    run()
 
 
 if __name__ == "__main__":
