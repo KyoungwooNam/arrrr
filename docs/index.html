@@ -205,8 +205,25 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 1rem 1rem 0.75rem;
+        padding: 0;
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      .cloud-panel__head {
+        padding: 1rem 1.1rem 0.85rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(
+          165deg,
+          rgba(124, 156, 255, 0.06) 0%,
+          transparent 55%
+        );
+      }
+      .cloud-panel__titles {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.5rem 0.75rem;
+        margin-bottom: 0.45rem;
       }
       .cloud-panel h2 {
         font-family: var(--font-display);
@@ -215,12 +232,34 @@
         text-transform: uppercase;
         letter-spacing: 0.14em;
         color: var(--muted);
-        margin: 0 0 0.35rem;
+        margin: 0;
+      }
+      .cloud-badge {
+        font-family: var(--font-display);
+        font-size: 0.62rem;
+        font-weight: 600;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        background: rgba(124, 156, 255, 0.12);
+        color: var(--accent-hot);
+        border: 1px solid rgba(124, 156, 255, 0.22);
+      }
+      @media (prefers-color-scheme: light) {
+        .cloud-badge {
+          background: rgba(61, 90, 128, 0.1);
+          border-color: rgba(61, 90, 128, 0.2);
+        }
       }
       .cloud-hint {
         font-size: 0.8rem;
         color: var(--muted);
-        margin: 0 0 0.75rem;
+        margin: 0;
+        padding-left: 0.55rem;
+        border-left: 3px solid var(--chart-2);
+        line-height: 1.45;
+      }
+      .cloud-panel__stage {
+        padding: 0.85rem 1rem 1rem;
       }
       /* 명시 height: 자식 canvas의 % 높이가 0으로 붕괴하지 않도록 */
       .wordcloud-wrap {
@@ -228,32 +267,58 @@
         width: 100%;
         height: min(clamp(220px, 32vw, 340px), min(380px, 45vh));
         min-height: 200px;
-        border-radius: calc(var(--radius) - 4px);
+        border-radius: calc(var(--radius) - 2px);
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         overflow: hidden;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+      @media (prefers-color-scheme: light) {
+        .wordcloud-wrap {
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        }
+      }
+      .wordcloud-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.12);
+      }
+      @media (prefers-color-scheme: light) {
+        .wordcloud-wrap::after {
+          box-shadow: inset 0 0 40px rgba(61, 90, 128, 0.06);
+        }
       }
       #wordcloud-canvas {
         display: block;
         width: 100%;
         height: 100%;
+        position: relative;
+        z-index: 1;
       }
       .cloud-fallback {
         display: none;
         flex-wrap: wrap;
-        gap: 0.35rem;
-        padding: 0.5rem 0 0;
+        gap: 0.4rem;
+        padding: 0.65rem 0 0;
       }
       .cloud-fallback.is-visible {
         display: flex;
       }
       .cloud-fallback span {
         font-family: var(--font-display);
-        font-size: 0.75rem;
-        padding: 0.2rem 0.5rem;
+        font-size: 0.72rem;
+        padding: 0.28rem 0.55rem;
         background: var(--bg-elevated);
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px solid var(--border);
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .cloud-fallback span:hover {
+        border-color: rgba(124, 156, 255, 0.35);
+        background: var(--surface);
       }
 
       .side-aside {
@@ -273,57 +338,175 @@
         border-radius: var(--radius);
         background: var(--surface);
         overflow: hidden;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      details.by-date[open] {
+        border-color: rgba(124, 156, 255, 0.28);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+      }
+      @media (prefers-color-scheme: light) {
+        details.by-date[open] {
+          border-color: rgba(61, 90, 128, 0.28);
+        }
       }
       details.by-date summary {
-        padding: 0.9rem 1rem;
+        padding: 0.85rem 1rem 0.85rem 0.65rem;
         cursor: pointer;
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: 0.85rem;
         list-style: none;
         color: var(--fg-soft);
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        background: linear-gradient(
+          180deg,
+          rgba(92, 225, 200, 0.05) 0%,
+          transparent 100%
+        );
       }
       details.by-date summary::-webkit-details-marker {
         display: none;
       }
-      details.by-date summary::before {
-        content: "▸ ";
+      .by-date__chev {
+        flex-shrink: 0;
+        width: 1.35rem;
+        height: 1.35rem;
+        margin-top: 0.12rem;
+        border-radius: 8px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
         color: var(--accent);
+        transition: transform 0.2s ease, background 0.15s;
       }
-      details.by-date[open] summary::before {
-        content: "▾ ";
+      details.by-date[open] .by-date__chev {
+        transform: rotate(90deg);
+      }
+      .by-date__summary-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .by-date__title {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--fg);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.2rem;
+      }
+      .by-date__meta {
+        font-family: var(--font-display);
+        font-size: 0.68rem;
+        color: var(--muted);
+        font-weight: 500;
+        margin: 0;
+        line-height: 1.35;
+      }
+      .by-date__body {
+        padding: 0 0.65rem 0.85rem;
+        max-height: min(52vh, 28rem);
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+      .by-date__body::-webkit-scrollbar {
+        width: 6px;
+      }
+      .by-date__body::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 99px;
       }
       .day-block {
-        padding: 0 1rem 1rem;
-        border-top: 1px solid var(--border);
+        position: relative;
+        margin-top: 0.65rem;
+        padding: 0 0 0 0.85rem;
+        border-left: 2px solid rgba(124, 156, 255, 0.35);
+      }
+      .day-block:first-child {
+        margin-top: 0.35rem;
+      }
+      .day-block__header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.35rem 0.6rem;
+        margin-bottom: 0.5rem;
       }
       .day-block h3 {
         font-family: var(--font-display);
-        font-size: 0.82rem;
-        margin: 0.75rem 0 0.35rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin: 0;
         color: var(--fg);
+        letter-spacing: -0.02em;
       }
-      .day-block h3:first-child {
-        margin-top: 0.55rem;
-      }
-      .run-line {
-        font-size: 0.74rem;
+      .day-block__badge {
+        font-family: var(--font-display);
+        font-size: 0.58rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.12rem 0.4rem;
+        border-radius: 4px;
+        background: var(--bg-elevated);
         color: var(--muted);
-        margin: 0 0 0.35rem;
+        border: 1px solid var(--border);
+      }
+      .run-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.55rem 0.65rem 0.6rem;
+        margin-bottom: 0.5rem;
+      }
+      .run-card:last-child {
+        margin-bottom: 0;
+      }
+      .run-card__time {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: var(--font-display);
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--chart-2);
+        margin: 0 0 0.45rem;
+      }
+      .run-card__time::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--chart-2);
+        opacity: 0.85;
+      }
+      details.by-date summary:focus {
+        outline: none;
+      }
+      details.by-date summary:focus-visible .by-date__chev {
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
       }
       .term-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.3rem;
+        gap: 0.35rem;
       }
       .term-tags span {
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         font-family: var(--font-display);
-        padding: 0.15rem 0.45rem;
-        background: var(--bg-elevated);
-        border-radius: 6px;
+        padding: 0.22rem 0.5rem;
+        background: var(--surface);
+        border-radius: 999px;
         border: 1px solid var(--border);
         color: var(--fg-soft);
+        font-weight: 500;
+        transition: border-color 0.15s, color 0.15s;
+      }
+      .term-tags span:hover {
+        border-color: rgba(124, 156, 255, 0.35);
+        color: var(--fg);
       }
 
       .terms-head {
@@ -523,21 +706,34 @@
             hidden
             aria-labelledby="cloud-title"
           >
-            <h2 id="cloud-title">자주 잡힌 용어</h2>
-            <p class="cloud-hint">
-              글자 크기는 등장 횟수에 비례합니다. 단어를 누르면 아래 목록으로
-              이동합니다.
-            </p>
-            <div class="wordcloud-wrap" id="wordcloud-wrap">
-              <canvas id="wordcloud-canvas" aria-label="용어 워드클라우드"></canvas>
+            <div class="cloud-panel__head">
+              <div class="cloud-panel__titles">
+                <h2 id="cloud-title">자주 잡힌 용어</h2>
+                <span class="cloud-badge">등장 빈도</span>
+              </div>
+              <p class="cloud-hint">
+                글자 크기는 등장 횟수에 비례합니다. 단어를 누르면 아래 목록으로
+                스크롤됩니다.
+              </p>
             </div>
-            <div class="cloud-fallback" id="cloud-fallback"></div>
+            <div class="cloud-panel__stage">
+              <div class="wordcloud-wrap" id="wordcloud-wrap">
+                <canvas id="wordcloud-canvas" aria-label="용어 워드클라우드"></canvas>
+              </div>
+              <div class="cloud-fallback" id="cloud-fallback"></div>
+            </div>
           </section>
 
           <aside class="side-aside">
             <details class="by-date" id="by-date-wrap" hidden>
-              <summary>날짜별 수집 기록</summary>
-              <div id="by-date-body"></div>
+              <summary>
+                <span class="by-date__chev" aria-hidden="true">▸</span>
+                <div class="by-date__summary-text">
+                  <p class="by-date__title">날짜별 수집 기록</p>
+                  <p class="by-date__meta" id="by-date-meta"></p>
+                </div>
+              </summary>
+              <div class="by-date__body" id="by-date-body"></div>
             </details>
           </aside>
         </div>
@@ -813,28 +1009,52 @@
           if (keys.length === 0) return;
           const wrap = document.getElementById("by-date-wrap");
           const body = document.getElementById("by-date-body");
+          const metaEl = document.getElementById("by-date-meta");
           body.innerHTML = "";
-          keys.forEach((day) => {
+          let totalRuns = 0;
+          keys.forEach(function (day) {
             const entry = byDate[day];
-            const block = el("div", { class: "day-block" });
-            block.appendChild(el("h3", { text: formatSeoulDateKey(day) }));
             const runs = entry && entry.runs;
             if (Array.isArray(runs)) {
-              runs.forEach((r) => {
-                if (!r) return;
-                block.appendChild(
-                  el("p", {
-                    class: "run-line",
-                    text: "실행: " + formatSeoulDateTime(r.run_at),
-                  })
-                );
-                const tags = el("div", { class: "term-tags" });
-                (r.extracted_terms || []).forEach((t) => {
-                  tags.appendChild(el("span", { text: String(t) }));
-                });
-                block.appendChild(tags);
-              });
+              totalRuns += runs.filter(Boolean).length;
             }
+          });
+          if (metaEl) {
+            metaEl.textContent =
+              keys.length +
+              "일 · 수집 " +
+              totalRuns +
+              "회 — 펼쳐서 실행별 용어를 확인하세요.";
+          }
+          keys.forEach((day) => {
+            const entry = byDate[day];
+            const runs = entry && entry.runs;
+            const runList = Array.isArray(runs) ? runs.filter(Boolean) : [];
+            const block = el("div", { class: "day-block" });
+            const header = el("div", { class: "day-block__header" });
+            header.appendChild(el("h3", { text: formatSeoulDateKey(day) }));
+            header.appendChild(
+              el("span", {
+                class: "day-block__badge",
+                text: runList.length + "회 실행",
+              })
+            );
+            block.appendChild(header);
+            runList.forEach((r) => {
+              const card = el("div", { class: "run-card" });
+              card.appendChild(
+                el("p", {
+                  class: "run-card__time",
+                  text: formatSeoulDateTime(r.run_at),
+                })
+              );
+              const tags = el("div", { class: "term-tags" });
+              (r.extracted_terms || []).forEach((t) => {
+                tags.appendChild(el("span", { text: String(t) }));
+              });
+              if (tags.childNodes.length) card.appendChild(tags);
+              block.appendChild(card);
+            });
             body.appendChild(block);
           });
           wrap.hidden = false;
