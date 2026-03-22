@@ -188,17 +188,13 @@
         white-space: nowrap;
       }
 
-      /* 메인: 넓은 화면에서 가로 2열 (클라우드 + 사이드) */
+      /* 클라우드·날짜 블록은 아래 #terms 카드 그리드와 같은 가로 폭(전체 열) */
       .layout-split {
         display: grid;
         gap: 1.25rem;
         margin-bottom: 1.5rem;
         align-items: start;
-      }
-      @media (min-width: 900px) {
-        .layout-split {
-          grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
-        }
+        grid-template-columns: 1fr;
       }
 
       .cloud-panel {
@@ -210,7 +206,7 @@
         overflow: hidden;
       }
       .cloud-panel__head {
-        padding: 1rem 1.1rem 0.85rem;
+        padding: 0.85rem 1rem 0.85rem;
         border-bottom: 1px solid var(--border);
         background: linear-gradient(
           165deg,
@@ -261,13 +257,13 @@
       .cloud-panel__stage {
         padding: 0.85rem 1rem 1rem;
       }
-      /* 명시 height: 자식 canvas의 % 높이가 0으로 붕괴하지 않도록 */
+      /* 높이는 뷰포트·폭에 비례, 카드와 동일한 --radius */
       .wordcloud-wrap {
         position: relative;
         width: 100%;
-        height: min(clamp(220px, 32vw, 340px), min(380px, 45vh));
-        min-height: 200px;
-        border-radius: calc(var(--radius) - 2px);
+        min-height: 220px;
+        height: clamp(240px, 28vw, min(400px, 42vh));
+        border-radius: var(--radius);
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         overflow: hidden;
@@ -325,12 +321,6 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-      }
-      @media (min-width: 900px) {
-        .side-aside {
-          position: sticky;
-          top: 0.75rem;
-        }
       }
 
       details.by-date {
@@ -852,8 +842,8 @@
         let allTerms = [];
         let cloudResizeTimer = null;
         let lastCloudList = null;
-        const TERMS_PAGE_SIZE = 24;
-        let termsPage = 1;
+        /** 현재 선택한 시작 글자 버킷: "a"~"z" 또는 그 외 "#" */
+        let termsLetterKey = "a";
         let termsListRef = [];
 
         function el(tag, attrs, children) {
@@ -974,43 +964,50 @@
           return "hsl(" + h + "," + s + "," + l + ")";
         }
 
-        /** 1→a … 26→z, 그다음은 숫자 문자열 (페이지 버튼 표기) */
-        function termsPageLabel(pageNum) {
-          if (pageNum >= 1 && pageNum <= 26) {
-            return String.fromCharCode(96 + pageNum);
-          }
-          return String(pageNum);
+        /** 용어 문자열 기준 첫 글자 → a~z 버킷, 영문 A–Z가 아니면 "#" */
+        function termFirstLetterBucket(term) {
+          const s = String(term || "").trim();
+          if (!s.length) return "#";
+          const ch = s.charAt(0);
+          if (/^[a-zA-Z]$/.test(ch)) return ch.toLowerCase();
+          return "#";
         }
 
-        function paginationWindow(cur, total) {
-          const delta = 2;
-          const range = [];
-          for (let i = 1; i <= total; i++) {
-            if (
-              i === 1 ||
-              i === total ||
-              (i >= cur - delta && i <= cur + delta)
-            ) {
-              range.push(i);
-            }
-          }
-          const out = [];
-          let prev = 0;
-          for (let j = 0; j < range.length; j++) {
-            const i = range[j];
-            if (prev && i - prev > 1) {
-              out.push("…");
-            }
-            out.push(i);
-            prev = i;
-          }
-          return out;
+        function bucketTermsByFirstLetter(list) {
+          const buckets = {};
+          list.forEach(function (t) {
+            const k = termFirstLetterBucket(t.term);
+            if (!buckets[k]) buckets[k] = [];
+            buckets[k].push(t);
+          });
+          Object.keys(buckets).forEach(function (k) {
+            buckets[k].sort(function (a, b) {
+              return String(a.term || "").localeCompare(
+                String(b.term || ""),
+                "en",
+                { sensitivity: "base" }
+              );
+            });
+          });
+          return buckets;
         }
 
-        function renderTermsPagination(totalPages) {
+        function orderedLetterKeys(buckets) {
+          const keys = Object.keys(buckets).filter(function (k) {
+            return buckets[k].length > 0;
+          });
+          keys.sort(function (a, b) {
+            if (a === "#") return 1;
+            if (b === "#") return -1;
+            return a.localeCompare(b);
+          });
+          return keys;
+        }
+
+        function renderTermsLetterNav(letterOrder) {
           const nav = document.getElementById("terms-pagination");
           if (!nav) return;
-          if (totalPages <= 1) {
+          if (letterOrder.length === 0) {
             nav.innerHTML = "";
             nav.hidden = true;
             return;
@@ -1018,47 +1015,47 @@
           nav.hidden = false;
           nav.innerHTML = "";
 
+          const ix = letterOrder.indexOf(termsLetterKey);
+          const pos = ix >= 0 ? ix : 0;
+
           const prevBtn = el("button", {
             type: "button",
             class: "terms-page-btn terms-page-btn--nav",
-            text: "이전",
+            text: "이전 글자",
             onclick: function () {
-              if (termsPage <= 1) return;
-              termsPage--;
+              if (pos <= 0) return;
+              termsLetterKey = letterOrder[pos - 1];
               renderTerms(termsListRef, { keepPage: true });
             },
           });
-          prevBtn.disabled = termsPage <= 1;
+          prevBtn.disabled = pos <= 0;
 
           const nextBtn = el("button", {
             type: "button",
             class: "terms-page-btn terms-page-btn--nav",
-            text: "다음",
+            text: "다음 글자",
             onclick: function () {
-              if (termsPage >= totalPages) return;
-              termsPage++;
+              if (pos >= letterOrder.length - 1) return;
+              termsLetterKey = letterOrder[pos + 1];
               renderTerms(termsListRef, { keepPage: true });
             },
           });
-          nextBtn.disabled = termsPage >= totalPages;
+          nextBtn.disabled = pos >= letterOrder.length - 1;
 
           const pagesWrap = el("div", { class: "terms-pagination__pages" });
-          paginationWindow(termsPage, totalPages).forEach(function (item) {
-            if (item === "…") {
-              pagesWrap.appendChild(
-                el("span", { class: "terms-page-ellipsis", text: "…" })
-              );
-              return;
-            }
-            const p = item;
-            const isCur = p === termsPage;
+          letterOrder.forEach(function (letter) {
+            const isCur = letter === termsLetterKey;
+            const label = letter === "#" ? "#" : letter;
             const btn = el("button", {
               type: "button",
               class: "terms-page-btn" + (isCur ? " is-current" : ""),
-              text: termsPageLabel(p),
-              "aria-label": "페이지 " + termsPageLabel(p) + " (" + p + "/" + totalPages + ")",
+              text: label,
+              "aria-label":
+                (letter === "#"
+                  ? "영문 a–z로 시작하지 않는 용어"
+                  : "「" + letter + "」로 시작하는 용어") + " 보기",
               onclick: function () {
-                termsPage = p;
+                termsLetterKey = letter;
                 renderTerms(termsListRef, { keepPage: true });
               },
             });
@@ -1075,18 +1072,18 @@
           const key = termKey(word);
           const input = document.getElementById("q");
           let list = filterTerms(input.value);
-          let idx = list.findIndex(function (t) {
+          let found = list.find(function (t) {
             return termKey(t.term) === key;
           });
-          if (idx < 0) {
+          if (!found) {
             input.value = "";
             list = filterTerms("");
-            idx = list.findIndex(function (t) {
+            found = list.find(function (t) {
               return termKey(t.term) === key;
             });
           }
-          if (idx < 0) return;
-          termsPage = Math.floor(idx / TERMS_PAGE_SIZE) + 1;
+          if (!found) return;
+          termsLetterKey = termFirstLetterBucket(found.term);
           renderTerms(list, { keepPage: true });
           requestAnimationFrame(function () {
             requestAnimationFrame(function () {
@@ -1274,17 +1271,12 @@
 
         function renderTerms(list, options) {
           const keepPage = options && options.keepPage;
-          if (!keepPage) {
-            termsPage = 1;
-          }
           termsListRef = list;
           const root = document.getElementById("terms");
           root.innerHTML = "";
           const total = list.length;
-          const totalPages = Math.max(1, Math.ceil(total / TERMS_PAGE_SIZE));
-          if (termsPage > totalPages) {
-            termsPage = totalPages;
-          }
+          const buckets = bucketTermsByFirstLetter(list);
+          const letterOrder = orderedLetterKeys(buckets);
 
           if (total === 0) {
             document.getElementById("shown-count").textContent = "0개 표시";
@@ -1294,28 +1286,25 @@
                 text: "조건에 맞는 용어가 없습니다.",
               })
             );
-            renderTermsPagination(1);
+            renderTermsLetterNav([]);
             return;
           }
 
-          const start = (termsPage - 1) * TERMS_PAGE_SIZE;
-          const end = Math.min(start + TERMS_PAGE_SIZE, total);
-          const pageSlice = list.slice(start, end);
-          const pageHint =
-            totalPages <= 26
-              ? "페이지 " +
-                termsPageLabel(termsPage) +
-                "/" +
-                termsPageLabel(totalPages)
-              : "페이지 " + termsPage + "/" + totalPages;
+          if (!keepPage || letterOrder.indexOf(termsLetterKey) < 0) {
+            termsLetterKey = letterOrder[0];
+          }
+
+          const pageSlice = buckets[termsLetterKey] || [];
+          const letterLabel =
+            termsLetterKey === "#"
+              ? "a–z 외"
+              : "「" + termsLetterKey + "」로 시작";
           document.getElementById("shown-count").textContent =
             total +
             "개 중 " +
-            (start + 1) +
-            "–" +
-            end +
-            " 표시 · " +
-            pageHint;
+            pageSlice.length +
+            "개 표시 · " +
+            letterLabel;
 
           pageSlice.forEach((t) => {
             const details = el("details", { class: "term-card" });
@@ -1364,7 +1353,13 @@
             root.appendChild(details);
           });
 
-          renderTermsPagination(totalPages);
+          if (pageSlice.length === 0 && letterOrder.length) {
+            termsLetterKey = letterOrder[0];
+            renderTerms(list, { keepPage: true });
+            return;
+          }
+
+          renderTermsLetterNav(letterOrder);
         }
 
         function filterTerms(q) {
