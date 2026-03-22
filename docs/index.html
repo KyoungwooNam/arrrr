@@ -533,6 +533,75 @@
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
+      .terms-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem 0.75rem;
+        margin-top: 1.15rem;
+        padding: 0.85rem 0 0.15rem;
+        border-top: 1px solid var(--border);
+      }
+      .terms-pagination__pages {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        max-width: 100%;
+      }
+      .terms-page-btn {
+        min-width: 2.15rem;
+        height: 2.15rem;
+        padding: 0 0.4rem;
+        font-family: var(--font-display);
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--fg-soft);
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+      }
+      .terms-page-btn:hover:not(:disabled) {
+        border-color: rgba(124, 156, 255, 0.45);
+        color: var(--accent-hot);
+        background: var(--bg-elevated);
+      }
+      @media (prefers-color-scheme: light) {
+        .terms-page-btn:hover:not(:disabled) {
+          border-color: rgba(61, 90, 128, 0.4);
+        }
+      }
+      .terms-page-btn:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+      }
+      .terms-page-btn.is-current {
+        background: rgba(124, 156, 255, 0.14);
+        border-color: var(--accent);
+        color: var(--accent-hot);
+      }
+      @media (prefers-color-scheme: light) {
+        .terms-page-btn.is-current {
+          background: rgba(61, 90, 128, 0.12);
+        }
+      }
+      .terms-page-btn--nav {
+        min-width: auto;
+        padding: 0 0.75rem;
+        font-size: 0.72rem;
+        text-transform: none;
+      }
+      .terms-page-ellipsis {
+        font-family: var(--font-display);
+        font-size: 0.75rem;
+        color: var(--muted);
+        padding: 0 0.15rem;
+        user-select: none;
+      }
       details.term-card {
         border: 1px solid var(--border);
         border-radius: var(--radius);
@@ -740,6 +809,12 @@
 
         <h2 class="terms-head">전체 용어</h2>
         <section id="terms" aria-label="용어 목록"></section>
+        <nav
+          class="terms-pagination"
+          id="terms-pagination"
+          aria-label="용어 목록 페이지"
+          hidden
+        ></nav>
       </div>
 
       <footer class="site">
@@ -777,6 +852,9 @@
         let allTerms = [];
         let cloudResizeTimer = null;
         let lastCloudList = null;
+        const TERMS_PAGE_SIZE = 24;
+        let termsPage = 1;
+        let termsListRef = [];
 
         function el(tag, attrs, children) {
           const n = document.createElement(tag);
@@ -896,14 +974,130 @@
           return "hsl(" + h + "," + s + "," + l + ")";
         }
 
+        /** 1→a … 26→z, 그다음은 숫자 문자열 (페이지 버튼 표기) */
+        function termsPageLabel(pageNum) {
+          if (pageNum >= 1 && pageNum <= 26) {
+            return String.fromCharCode(96 + pageNum);
+          }
+          return String(pageNum);
+        }
+
+        function paginationWindow(cur, total) {
+          const delta = 2;
+          const range = [];
+          for (let i = 1; i <= total; i++) {
+            if (
+              i === 1 ||
+              i === total ||
+              (i >= cur - delta && i <= cur + delta)
+            ) {
+              range.push(i);
+            }
+          }
+          const out = [];
+          let prev = 0;
+          for (let j = 0; j < range.length; j++) {
+            const i = range[j];
+            if (prev && i - prev > 1) {
+              out.push("…");
+            }
+            out.push(i);
+            prev = i;
+          }
+          return out;
+        }
+
+        function renderTermsPagination(totalPages) {
+          const nav = document.getElementById("terms-pagination");
+          if (!nav) return;
+          if (totalPages <= 1) {
+            nav.innerHTML = "";
+            nav.hidden = true;
+            return;
+          }
+          nav.hidden = false;
+          nav.innerHTML = "";
+
+          const prevBtn = el("button", {
+            type: "button",
+            class: "terms-page-btn terms-page-btn--nav",
+            text: "이전",
+            onclick: function () {
+              if (termsPage <= 1) return;
+              termsPage--;
+              renderTerms(termsListRef, { keepPage: true });
+            },
+          });
+          prevBtn.disabled = termsPage <= 1;
+
+          const nextBtn = el("button", {
+            type: "button",
+            class: "terms-page-btn terms-page-btn--nav",
+            text: "다음",
+            onclick: function () {
+              if (termsPage >= totalPages) return;
+              termsPage++;
+              renderTerms(termsListRef, { keepPage: true });
+            },
+          });
+          nextBtn.disabled = termsPage >= totalPages;
+
+          const pagesWrap = el("div", { class: "terms-pagination__pages" });
+          paginationWindow(termsPage, totalPages).forEach(function (item) {
+            if (item === "…") {
+              pagesWrap.appendChild(
+                el("span", { class: "terms-page-ellipsis", text: "…" })
+              );
+              return;
+            }
+            const p = item;
+            const isCur = p === termsPage;
+            const btn = el("button", {
+              type: "button",
+              class: "terms-page-btn" + (isCur ? " is-current" : ""),
+              text: termsPageLabel(p),
+              "aria-label": "페이지 " + termsPageLabel(p) + " (" + p + "/" + totalPages + ")",
+              onclick: function () {
+                termsPage = p;
+                renderTerms(termsListRef, { keepPage: true });
+              },
+            });
+            if (isCur) btn.setAttribute("aria-current", "page");
+            pagesWrap.appendChild(btn);
+          });
+
+          nav.appendChild(prevBtn);
+          nav.appendChild(pagesWrap);
+          nav.appendChild(nextBtn);
+        }
+
         function scrollToTerm(word) {
           const key = termKey(word);
-          const card = document.querySelector(
-            '[data-term-key="' + escapeCssAttr(key) + '"]'
-          );
-          if (!card) return;
-          card.open = true;
-          card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          const input = document.getElementById("q");
+          let list = filterTerms(input.value);
+          let idx = list.findIndex(function (t) {
+            return termKey(t.term) === key;
+          });
+          if (idx < 0) {
+            input.value = "";
+            list = filterTerms("");
+            idx = list.findIndex(function (t) {
+              return termKey(t.term) === key;
+            });
+          }
+          if (idx < 0) return;
+          termsPage = Math.floor(idx / TERMS_PAGE_SIZE) + 1;
+          renderTerms(list, { keepPage: true });
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              const card = document.querySelector(
+                '[data-term-key="' + escapeCssAttr(key) + '"]'
+              );
+              if (!card) return;
+              card.open = true;
+              card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+          });
         }
 
         function drawWordCloud(list) {
@@ -1078,23 +1272,52 @@
           return svg;
         }
 
-        function renderTerms(list) {
+        function renderTerms(list, options) {
+          const keepPage = options && options.keepPage;
+          if (!keepPage) {
+            termsPage = 1;
+          }
+          termsListRef = list;
           const root = document.getElementById("terms");
           root.innerHTML = "";
-          document.getElementById("shown-count").textContent =
-            list.length + "개 표시";
+          const total = list.length;
+          const totalPages = Math.max(1, Math.ceil(total / TERMS_PAGE_SIZE));
+          if (termsPage > totalPages) {
+            termsPage = totalPages;
+          }
 
-          if (list.length === 0) {
+          if (total === 0) {
+            document.getElementById("shown-count").textContent = "0개 표시";
             root.appendChild(
               el("p", {
                 class: "empty-hint",
                 text: "조건에 맞는 용어가 없습니다.",
               })
             );
+            renderTermsPagination(1);
             return;
           }
 
-          list.forEach((t) => {
+          const start = (termsPage - 1) * TERMS_PAGE_SIZE;
+          const end = Math.min(start + TERMS_PAGE_SIZE, total);
+          const pageSlice = list.slice(start, end);
+          const pageHint =
+            totalPages <= 26
+              ? "페이지 " +
+                termsPageLabel(termsPage) +
+                "/" +
+                termsPageLabel(totalPages)
+              : "페이지 " + termsPage + "/" + totalPages;
+          document.getElementById("shown-count").textContent =
+            total +
+            "개 중 " +
+            (start + 1) +
+            "–" +
+            end +
+            " 표시 · " +
+            pageHint;
+
+          pageSlice.forEach((t) => {
             const details = el("details", { class: "term-card" });
             details.setAttribute("data-term-key", termKey(t.term));
 
@@ -1140,6 +1363,8 @@
             details.appendChild(body);
             root.appendChild(details);
           });
+
+          renderTermsPagination(totalPages);
         }
 
         function filterTerms(q) {
