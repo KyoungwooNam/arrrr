@@ -440,7 +440,8 @@
           renderTerms(filterTerms(e.target.value));
         });
 
-        fetch(JSON_URL)
+        // 배포 직후·CDN 캐시로 옛 응답이 남는 경우를 줄이기 위해 재검증 요청
+        fetch(JSON_URL, { cache: "no-cache" })
           .then((r) => {
             if (!r.ok) throw new Error("HTTP " + r.status + " — " + JSON_URL);
             return r.json();

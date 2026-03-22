@@ -1,10 +1,15 @@
 # 저장소: https://github.com/KyoungwooNam/arrrr
-# Secrets에 OPENAI_API_KEY 등록 필요. 봇 커밋은 [skip ci]로 재실행 방지.
+# Secrets에 OPENAI_API_KEY 등록 필요.
+# 봇이 JSON만 푸시할 때는 paths-ignore로 이 워크플로는 돌지 않게 해 무한 루프를 막고,
+# [skip ci]는 쓰지 않습니다. 그래야 Deploy Pages 워크플로가 같이 돌아 사이트에 JSON이 반영됩니다.
 name: Collect tech terms
 
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - "data/tech_terms.json"
+      - "docs/data/tech_terms.json"
   schedule:
     # 매주 월요일 00:00 UTC
     - cron: "0 0 * * 1"
@@ -52,6 +57,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "data: update tech_terms.json [skip ci]"
+            git commit -m "data: update tech_terms.json"
             git push
           fi
