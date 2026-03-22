@@ -1,0 +1,46 @@
+# 주기적으로 테크 용어 JSON을 갱신합니다. 저장소 Secrets에 OPENAI_API_KEY를 등록하세요.
+name: Collect tech terms
+
+on:
+  schedule:
+    # 매주 월요일 00:00 UTC
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect terms
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: |
+          python scripts/collect_tech_terms.py --batch-size 20
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/tech_terms.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "data: update tech_terms.json [skip ci]"
+            git push
+          fi
